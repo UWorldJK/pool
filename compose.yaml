@@ -1,0 +1,46 @@
+name: pool
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.vercel
+      target: development
+    env_file:
+      - .env.local
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - local
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+          initial_sync: true
+        - action: sync
+          path: ./public
+          target: /app/public
+          initial_sync: true
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./next.config.ts
+        - action: rebuild
+          path: ./postcss.config.mjs
+        - action: rebuild
+          path: ./tsconfig.json
+        - action: rebuild
+          path: ./Dockerfile.vercel
+        - action: rebuild
+          path: ./.dockerignore
+
+networks:
+  local:
+    external: true
+    name: pool-local

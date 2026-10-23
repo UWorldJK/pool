@@ -1,0 +1,57 @@
+# Local configuration only. Hosted settings are managed in Supabase separately.
+# Reference: https://supabase.com/docs/guides/local-development/cli/config
+project_id = "pool"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+# Capture local email without delivering real messages.
+[local_smtp]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3001"]
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_refresh_token_rotation = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+# Enable these when an application feature actually needs them.
+[storage]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
