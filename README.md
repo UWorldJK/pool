@@ -114,7 +114,9 @@ variable or Docker build argument. The foundation needs only the publishable key
 The actual environment file is ignored by Git, Docker and Vercel uploads.
 
 For host-native development, remove `SUPABASE_INTERNAL_URL` from `.env.local`
-and run `npm run dev`. This uses the same local Supabase backend.
+and run `npm run dev`. This uses the same local Supabase backend and listens
+only on `127.0.0.1`. The development container explicitly listens on `0.0.0.0`
+inside Docker, with Compose publishing its port only on host loopback.
 
 ## Verify the foundation
 
