@@ -48,6 +48,17 @@ with that verified deployment URL. Recheck the homepage and health endpoint.
 This rolls back application code, not database changes. Future migrations should
 remain compatible with the previous application version during a rollout.
 
+After a rollback, Vercel disables automatic assignment of production domains.
+New production deployments can build successfully while the production domain
+continues serving the rolled-back version. To resume releases, deploy the fix
+and verify its deployment URL, then run
+`npx vercel promote <fixed-deployment-url>`. Alternatively, choose **Undo Rollback**
+in the Vercel dashboard and select that verified fixed deployment. Promotion
+restores automatic production-domain assignment for future releases. Confirm
+that the production domain now serves the fixed version and recheck its
+homepage and `/api/health`. See Vercel's
+[rollback recovery documentation](https://vercel.com/docs/cli/rollback#undo-a-rollback).
+
 ## Costs
 
 As checked October 23, 2026:
