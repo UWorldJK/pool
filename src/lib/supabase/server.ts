@@ -8,7 +8,10 @@ export async function createClient() {
   const { url, publishableKey } = getPublicSupabaseConfig();
   const cookieStore = await cookies();
 
-  return createServerClient(process.env.SUPABASE_INTERNAL_URL || url, publishableKey, {
+  // Use service role key if available (for admin operations), otherwise use publishable key
+  const apiKey = process.env.SUPABASE_SERVICE_ROLE_KEY || publishableKey;
+
+  return createServerClient(process.env.SUPABASE_INTERNAL_URL || url, apiKey, {
     // Browser and container URLs differ locally. Both clients must use the same
     // cookie name rather than letting the SDK derive it from their hostnames.
     cookieOptions: authCookieOptions,

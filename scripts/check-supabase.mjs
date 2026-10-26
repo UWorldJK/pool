@@ -2,17 +2,17 @@ const internal = process.argv.includes("--internal");
 const baseUrl = internal
   ? process.env.SUPABASE_INTERNAL_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
   : process.env.NEXT_PUBLIC_SUPABASE_URL;
-const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const apiKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-if (!baseUrl || !publishableKey) {
-  console.error("Set the Supabase URL and publishable key in .env.local first.");
+if (!baseUrl || !apiKey) {
+  console.error("Set the Supabase URL and API key in .env.local first.");
   process.exit(1);
 }
 
 try {
   for (const endpoint of ["/auth/v1/health", "/rest/v1/"]) {
     const response = await fetch(new URL(endpoint, baseUrl), {
-      headers: { apikey: publishableKey },
+      headers: { apikey: apiKey },
       signal: AbortSignal.timeout(10_000),
     });
 
