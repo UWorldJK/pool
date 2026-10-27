@@ -14,7 +14,7 @@ export default async function Attention({ searchParams }: { searchParams: Promis
   if (statuses.error) throw new Error("Assignment statuses could not be loaded");
   const active = offers.data.filter((offer) => !offer.cancelled_at);
   const pending = active.filter((offer) => offer.status === "invited");
-  const joined = active.filter((offer) => offer.status === "joined" && statuses.data.find((p) => p.ride_id===offer.id)?.coverage !== "confirmed");
+  const joined = active.filter((offer) => offer.status === "joined" && (statuses.data.find((p) => p.ride_id===offer.id)?.coverage !== "confirmed" || statuses.data.find((p) => p.ride_id===offer.id)?.proposal_status === "pending"));
   const driverReplies = inbox.data.slice(0,25);
   return <><h1>Needs attention</h1><p>Family rides over the next year and pending driver requests. Needs-driver, awaiting-confirmation and confirmed are separate states. A past pickup never implies completion. Refresh to see current replies.</p>
     <h2>Pickup and handoffs</h2><p>Manually reported progress. Unfinished trips remain here after their scheduled end. Arrival still requires explicit guardian receipt.</p>
@@ -22,7 +22,7 @@ export default async function Attention({ searchParams }: { searchParams: Promis
     {trips.data.length>25 && <Link href={`/app/attention?after_trip=${trips.data[24].ride_id}`}>Next pickup and handoff items</Link>}
     {after && <Link href="/app/attention">First pickup and handoff items</Link>}
     <h2>Pending family responses</h2>{pending.length ? <RideList offers={pending} statuses={statuses.data} /> : <p>No pending ride invitations.</p>}
-    <h2>Participating rides needing a driver</h2>{joined.length ? <RideList offers={joined} statuses={statuses.data} /> : <p>No participating rides need attention.</p>}
+    <h2>Participating rides needing a driver or replacement replies</h2>{joined.length ? <RideList offers={joined} statuses={statuses.data} /> : <p>No participating rides need attention.</p>}
     <h2>Your pending driver confirmations</h2>{driverReplies.length ? driverReplies.map((p) => <article key={p.proposal_id}><h3>{p.pickup_summary} → {p.destination_summary}</h3><DriverPanel status={p} /></article>) : <p>No pending driver confirmations.</p>}
     {inbox.data.length > 25 && <Link href="/app/driving?pending=1">See all pending driver requests</Link>}
     <Link href="/app/driving">All your driving requests and assignments</Link>

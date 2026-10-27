@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 const ok = async (db,name,args) => { const r=await db.rpc(name,args); assert.ifError(r.error); return r.data; };
 const denied = async (db,name,args,code) => { const r=await db.rpc(name,args); assert.ok(r.error,`${name} must deny`); if(code) assert.equal(r.error.code,code,`${name}: ${r.error.message}`); };
-async function setup(status) {
+export async function setup(status) {
   assert.equal(status.API_URL,"http://127.0.0.1:55321");
   const options={auth:{persistSession:false,autoRefreshToken:false}};
   const client=()=>createClient(status.API_URL,status.PUBLISHABLE_KEY||status.ANON_KEY,options);

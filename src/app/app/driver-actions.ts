@@ -26,7 +26,7 @@ export async function driverAction(_previous: DriverState, data: FormData): Prom
       if (retire && data.get("confirm") !== "yes") throw new Error("validation");
       result = await client.rpc("save_vehicle", { p_id: uuid(data, "vehicle_id"), p_label: requiredText(data, "label"), p_passenger_seats: integer(data, "passenger_seats", 1, 50), p_version: integer(data, "version", 0), p_retire: retire });
       path = "/app/vehicles";
-    } else if (command === "proposeDriver") {
+    } else if (command === "proposeDriver" || command === "requestReplacement") {
       // A single selected option binds adult, membership context, vehicle and version.
       const selection = requiredText(data, "driver_vehicle", 160).split("|");
       if (selection.length !== 4) throw new Error("validation");
@@ -34,7 +34,14 @@ export async function driverAction(_previous: DriverState, data: FormData): Prom
       ["driver_id", "driver_family_id", "vehicle_id", "vehicle_version"].forEach((key, index) => selected.set(key, selection[index]));
       if (data.get("confirm") !== "yes") throw new Error("validation");
       const ride = uuid(data, "ride_id");
-      result = await client.rpc("propose_driver", { p_id: uuid(data, "proposal_id"), p_ride_id: ride, p_family_id: uuid(data, "family_id"), p_revision: integer(data, "revision", 1), p_driver_id: uuid(selected, "driver_id"), p_driver_family_id: uuid(selected, "driver_family_id"), p_vehicle_id: uuid(selected, "vehicle_id"), p_vehicle_version: integer(selected, "vehicle_version", 1) });
+      const nomination = { p_id: uuid(data, "proposal_id"), p_ride_id: ride, p_family_id: uuid(data, "family_id"), p_revision: integer(data, "revision", 1), p_driver_id: uuid(selected, "driver_id"), p_driver_family_id: uuid(selected, "driver_family_id"), p_vehicle_id: uuid(selected, "vehicle_id"), p_vehicle_version: integer(selected, "vehicle_version", 1) };
+      if (command === "requestReplacement") {
+        const deadline = requiredText(data,"deadline",50);
+        if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?Z$/.test(deadline) || !Number.isFinite(Date.parse(deadline))) throw new Error("validation");
+        const mode = requiredText(data,"mode");
+        if (mode !== "optional_swap" && mode !== "unavailable") throw new Error("validation");
+        result = await client.rpc("request_replacement", { ...nomination,p_mode:mode,p_deadline:new Date(deadline).toISOString(),p_original_assignment_id:uuid(data,"original_assignment_id"),p_original_assignment_revision:integer(data,"original_assignment_revision",1) });
+      } else result = await client.rpc("propose_driver",nomination);
       path = `/app/rides/${ride}`;
     } else {
       const args = { p_id: uuid(data, "proposal_id"), p_revision: integer(data, "revision", 1) };

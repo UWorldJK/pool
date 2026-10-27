@@ -146,3 +146,7 @@ R6 extends these rules with [pickup and handoff guards](ride-handoffs.md): first
 pickup freezes the plan, withdrawal/revocation/cancellation then fail, responsible
 memberships remain until actual trip completion, and completed history is retained.
 The final explicit child receipt releases the assignment reservation.
+
+R7 extends this model with [optional and unavailable-driver replacements](driver-replacements.md).
+Replacement review reuses these acceptance, consent and assignment commands;
+an available original stays assigned until the atomic replacement commits.
