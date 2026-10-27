@@ -70,7 +70,12 @@ Commands acquire the inherited ordered family roots, circle and ride locks befor
 checking mutable authority/state. They compare the plan revision and child version,
 validate the exact predecessor, insert the event and change progress in one
 transaction. The same timestamp marks the event and its resulting milestone. A
-request UUID cannot be reused for a different payload. Identical retries and
+request UUID cannot be reused for a different payload. The forward review fix
+`20261027000500_handoff_request_bindings.sql` binds every successful UUID, including
+acknowledged duplicate no-ops, to its canonical event in an append-only, RLS-enabled
+command-private request ledger. Existing event UUIDs are backfilled on upgrade;
+clients cannot read or write deduplication metadata. Cross-ride binding conflicts
+roll back any new trip/event/progress atomically. Identical retries and
 concurrent identical reports from the same authorized actor/version return the
 current state without adding another event. This includes an original-event retry
 after completion: it returns terminal state and performs no write. Different
@@ -112,7 +117,8 @@ database subset; `npm run db:types` regenerates the checked-in public types.
 
 R6 adds `scripts/handoff-permissions.mjs`, Server Action regressions and
 `tests/auth/handoffs.spec.mjs`: multi-child persistence and separate completion,
-duplicate/concurrent receipts, actor and recipient denials (including an ordinary
+duplicate/concurrent receipts and successful duplicate UUID reuse across children/rides,
+actor and recipient denials (including an ordinary
 driver and a nondesignated same-family guardian), receipt before arrival, stale
 versions/request reuse, fabricated events/direct writes, scoped and revoked
 history, start revalidation, atomic rollback on event failure, removal/pickup races,

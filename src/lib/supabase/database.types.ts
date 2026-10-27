@@ -265,6 +265,26 @@ isOneToOne: false
       referencedColumns: ["id","ride_id","ride_revision","driver_id","vehicle_id","vehicle_version"]
     }
                   ]
+                },"ride_event_requests": {
+                  Row: {
+                    "acknowledged_at": string,"actor_id": string,"child_id": string,"event_id": string,"kind": string,"previous_version": number,"request_id": string,"ride_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acknowledged_at"?: string,"actor_id": string,"child_id": string,"event_id": string,"kind": string,"previous_version": number,"request_id": string,"ride_id": string
+                  }
+                  Update: {
+                    "acknowledged_at"?: string,"actor_id"?: string,"child_id"?: string,"event_id"?: string,"kind"?: string,"previous_version"?: number,"request_id"?: string,"ride_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ride_event_requests_event_id_ride_id_child_id_kind_previou_fkey"
+      columns: ["event_id","ride_id","child_id","kind","previous_version","actor_id"]
+isOneToOne: false
+      referencedRelation: "ride_events"
+      referencedColumns: ["request_id","ride_id","child_id","kind","previous_version","actor_id"]
+    }
+                  ]
                 },"ride_events": {
                   Row: {
                     "actor_id": string,"actor_name": string,"child_id": string,"kind": string,"occurred_at": string,"previous_version": number,"request_id": string,"ride_id": string

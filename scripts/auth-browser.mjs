@@ -162,9 +162,12 @@ try {
   execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
   await verifyR4();
   const verifyR5 = await handoffUpgradeIdentity(status);
+  copyFileSync("supabase/migrations/20261027000400_ride_handoffs.sql", join(directory,"supabase/migrations/20261027000400_ride_handoffs.sql"));
+  execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  const verifyR6 = await verifyR5();
   cpSync("supabase/migrations", join(directory, "supabase/migrations"), { recursive: true });
   execFileSync(cli, ["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
-  await verifyR5();
+  await verifyR6();
   function generatedTypes() {
     const database = new URL(status.DB_URL);
     assert.equal(database.hostname, "127.0.0.1");

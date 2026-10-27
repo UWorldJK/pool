@@ -52,8 +52,15 @@ export async function handoffUpgradeIdentity(status) {
     assert.equal((await ok(f.a.db,"driver_status",{p_ride_id:r.ride}))[0].coverage,"confirmed");
     assert.deepEqual((await f.a.db.from("ride_trips").select("*").eq("ride_id",r.ride)).data,[]);
     for (const [i,parent] of [[0,f.a],[1,f.b]]) await ok(parent.db,"designate_recipient",designation(r,f.children[i],parent.id));
-    await ok(f.d.db,"record_pickup",command(r,f.children[0],1));
+    const firstPickup=command(r,f.children[0],1);
+    await ok(f.d.db,"record_pickup",firstPickup);
     assert.equal((await f.b.db.from("ride_trips").select("*").eq("ride_id",r.ride)).data.length,1,"R5 confirmed plan survives upgrade and starts under R6");
+    return async()=>{
+      await denied(f.d.db,"record_pickup",{...command(r,f.children[1],1),p_request_id:firstPickup.p_request_id},"PT409");
+      const duplicate={...firstPickup,p_request_id:crypto.randomUUID()};
+      await ok(f.d.db,"record_pickup",duplicate);
+      await denied(f.d.db,"record_pickup",{...command(r,f.children[1],1),p_request_id:duplicate.p_request_id},"PT409");
+    };
   };
 }
 export async function handoffPermissionTests(status,sql) {
@@ -96,6 +103,12 @@ export async function handoffPermissionTests(status,sql) {
   await denied(d.db,"record_pickup",{...pickupA,p_revision:r.revision-1},"PT409");
   assert.equal(await ok(d.db,"record_pickup",pickupA),"picked_up");
   assert.equal(await ok(d.db,"record_pickup",pickupA),"picked_up");
+  const duplicatePickup={...pickupA,p_request_id:crypto.randomUUID()};
+  await ok(d.db,"record_pickup",duplicatePickup);
+  await denied(d.db,"record_pickup",{...command(r,cb,1),p_request_id:duplicatePickup.p_request_id},"PT409");
+  assert.equal(sql(`select status from public.ride_handoffs where ride_id='${r.ride}' and child_id='${cb}'`),"scheduled");
+  assert.equal(sql(`select count(*) from public.ride_events where ride_id='${r.ride}'`),"1","Successful duplicate UUID is bound without fabricating another event");
+  assert.equal(sql(`select count(*) from public.ride_event_requests where ride_id='${r.ride}'`),"2");
   await denied(b.db,"set_own_ride_riders",{p_ride_id:r.ride,p_family_id:b.family,p_revision:r.revision,p_child_ids:[]},"PT423");
   await denied(b.db,"designate_recipient",{...db,p_version:1,p_recipient_id:g.id},"PT423");
   await denied(d.db,"record_pickup",command(nextRide,ca,1),"PT424");
@@ -143,7 +156,26 @@ export async function handoffPermissionTests(status,sql) {
   assert.throws(()=>sql(`delete from public.ride_events where ride_id='${r.ride}'`));
   assert.equal(sql(`select count(*) from public.ride_events where ride_id='${r.ride}'`),"6");
   assert.ok(!(await ok(a.db,"trip_attention",{})).some(t=>t.ride_id===r.ride));
+  const sharedRequest=crypto.randomUUID();
+  const bindingRace=await Promise.all([
+    a.db.rpc("confirm_handoff",{...receiptA,p_request_id:sharedRequest}),
+    d.db.rpc("record_pickup",{...command(nextRide,ca,1),p_request_id:sharedRequest}),
+  ]);
+  assert.equal(bindingRace.filter(x=>!x.error).length,1,"One UUID cannot acknowledge two different payloads");
+  assert.equal(bindingRace.find(x=>x.error).error.code,"PT409");
+  assert.equal(sql(`select count(*) from public.ride_event_requests where request_id='${sharedRequest}'`),"1");
+  if(bindingRace[1].error) {
+    assert.equal(sql(`select count(*) from public.ride_events where ride_id='${nextRide.ride}'`),"0","Binding conflict rolls back a newly inserted event");
+    assert.equal(sql(`select count(*) from public.ride_trips where ride_id='${nextRide.ride}'`),"0","Binding conflict rolls back the trip freeze");
+  }
   await ok(d.db,"record_pickup",command(nextRide,ca,1));
+  const metadata={request_id:crypto.randomUUID(),event_id:pickupA.p_request_id,ride_id:r.ride,child_id:ca,kind:"picked_up",previous_version:1,actor_id:d.id};
+  assert.equal((await d.db.from("ride_event_requests").insert(metadata)).error?.code,"42501");
+  assert.equal((await a.db.from("ride_event_requests").select("*")).error?.code,"42501");
+  assert.equal((await d.db.from("ride_event_requests").update({actor_id:a.id}).eq("ride_id",r.ride)).error?.code,"42501");
+  assert.equal((await d.db.from("ride_event_requests").delete().eq("ride_id",r.ride)).error?.code,"42501");
+  assert.throws(()=>sql(`update public.ride_event_requests set actor_id='${a.id}' where request_id='${pickupA.p_request_id}'`));
+  assert.throws(()=>sql(`delete from public.ride_event_requests where request_id='${pickupA.p_request_id}'`));
   await ok(d.db,"report_arrival",command(nextRide,ca,2));
   await ok(a.db,"confirm_handoff",command(nextRide,ca,3));
   await ok(d.db,"save_vehicle",{p_id:car,p_label:"R6 vehicle",p_passenger_seats:3,p_version:1,p_retire:false});
