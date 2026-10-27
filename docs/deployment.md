@@ -20,6 +20,9 @@ one application; Supabase remains a separate managed backend.
    time and runtime. The Dockerfile declares only these two public build
    arguments. Set `PORT=3000`; the container sets `HOSTNAME=0.0.0.0` itself.
    Leave `SUPABASE_INTERNAL_URL` unset.
+   Use the public project key for both browser and session-based server clients;
+   the foundation does not need a service-role or secret key. Keep actual values
+   out of Git and commit only `.env.example` placeholders.
 4. Run `npx vercel deploy --prod` for the first production deployment. Vercel
    builds the final Dockerfile stage for `linux/amd64`. Save the deployment URL
    and confirm the homepage, CSS, `/robots.txt` and `/api/health` are served.

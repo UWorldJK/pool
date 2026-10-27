@@ -92,7 +92,7 @@ There are intentionally no ride tables or seed families in this foundation.
 | Setting | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Browser-accessible URL: `http://localhost:54321` locally, the hosted project's HTTPS URL when deployed. |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public project key, from the local CLI or hosted project's Connect dialog. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public project key (`sb_publishable_...`), from the local CLI or hosted project's Connect dialog. Legacy `anon` JWT keys also work in this variable. |
 | `SUPABASE_INTERNAL_URL` | Server-only override for Docker: `http://api.supabase.internal:8000`. Omit it for hosted Supabase or host-native development. |
 | `PORT` | App listener port; use `3000` locally and in Vercel project settings. |
 
@@ -109,14 +109,35 @@ official authentication APIs. No login flow or authorization policy is included
 yet. Future data tables need explicit row-level security policies before being
 exposed to browser clients.
 
+Both helpers use the public project key. A server-side request still acts on
+behalf of a user and must respect row-level security. The session helper does
+not read `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY`. Future admin
+operations need a separate server-only `@supabase/supabase-js` client without
+user cookies or session persistence, behind explicit authorization checks. See
+[Supabase's service-role client guidance](https://supabase.com/kb/troubleshooting/why-is-my-service-role-key-client-getting-rls-errors-or-not-returning-data-7_1K9z).
+
 Never put a database password, secret key or service-role key in a `NEXT_PUBLIC_`
 variable or Docker build argument. The foundation needs only the publishable key.
+Keep credentials in `.env.local` or the deployment environment, never in Git.
 The actual environment file is ignored by Git, Docker and Vercel uploads.
 
 For host-native development, remove `SUPABASE_INTERNAL_URL` from `.env.local`
 and run `npm run dev`. This uses the same local Supabase backend and listens
 only on `127.0.0.1`. The development container explicitly listens on `0.0.0.0`
 inside Docker, with Compose publishing its port only on host loopback.
+
+### Use a hosted Supabase project during development
+
+Set `NEXT_PUBLIC_SUPABASE_URL` to the hosted project's HTTPS URL and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to its public key in `.env.local`. Prefer
+a modern `sb_publishable_...` key; an enabled legacy `anon` key is also accepted
+under the same variable name. Remove `SUPABASE_INTERNAL_URL` so server requests
+use the hosted project too. No service-role or secret key is needed.
+
+Run `npm run dev` to start the app on the host, or recreate the app container if
+using Compose. The hosted project supplies the backend. These settings belong
+in the ignored `.env.local`; commit only the placeholders in `.env.example`.
+See [Supabase's API key guide](https://supabase.com/docs/guides/getting-started/api-keys).
 
 ## Verify the foundation
 
@@ -127,14 +148,20 @@ npm run supabase:check
 docker compose exec web npm run supabase:check -- --internal
 ```
 
-The connectivity checks call the Auth health endpoint and the PostgREST API with
-the publishable key. They check service access without creating user data. The
-public check uses the address available to the browser; to verify browser CORS
-too, open the app, run the following in the browser console with your **local
-publishable key**, and expect HTTP 200:
+The connectivity checks use only the public project key, even when a service-role
+or secret key is present in the environment. They call Auth health and Auth
+settings to verify reachability and key acceptance without creating user data.
+They do not verify database queries, table grants, or row-level security policies;
+add those checks when the application schema exists. The PostgREST root
+(`/rest/v1/`) requires admin access and is unsuitable for a public-key check.
+
+The public check uses the address available to the browser; to verify browser
+CORS too, open the app, run the following in the browser console with your
+**local publishable key**, and expect HTTP 200. For a hosted project, substitute
+its HTTPS URL and public key:
 
 ```js
-await fetch('http://localhost:54321/rest/v1/', {
+await fetch('http://localhost:54321/auth/v1/settings', {
   headers: { apikey: 'YOUR_LOCAL_PUBLISHABLE_KEY' }
 }).then(response => response.status)
 ```
