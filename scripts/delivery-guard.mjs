@@ -67,17 +67,17 @@ export function validateSource(sha, runGit = git) {
   requireThat(entries.every((line) => line.startsWith("100644 ") || line.startsWith("100755 ")),
     "Delivery source cannot contain symlinks or submodules");
   const paths = runGit("ls-tree", "-rz", "--name-only", sha).split("\0").filter(Boolean);
-  requireThat(!paths.some((path) => /\.sql($|\.)|(^|\/)(migrations|schemas)(\/|$)/i.test(path)),
-    "Schema-changing delivery is blocked until R3 adds the ordered migration executor");
+  requireThat(!paths.some((path) => /\.sql($|\.)|(^|\/)(migrations|schemas)(\/|$)/i.test(path) &&
+    !/^supabase\/migrations\/\d{14}_[a-z0-9_]+\.sql$/.test(path)), "SQL must use the reviewed versioned migration directory");
   const foundation = "343f5abd59c77d3d6f06a542557b329c464177c0";
-  const backendChanges = runGit("diff", "--name-only", foundation, sha, "--", "supabase").trim();
+  const backendChanges = runGit("diff", "--name-only", foundation, sha, "--", "supabase").trim().split("\n")
+    .filter((path) => path && !/^supabase\/migrations\/\d{14}_[a-z0-9_]+\.sql$/.test(path)).join("\n");
   if (backendChanges) {
-    // R2 needs local Auth mail wiring, not a schema executor. Permit exactly the
-    // reviewed template suffix; every other backend/config change stays blocked.
+    // Only versioned SQL is newly eligible. Retain the exact R2 Auth config.
     const mailConfig = readFileSync(new URL("../auth/email/local-config.toml", import.meta.url), "utf8");
     requireThat(backendChanges === "supabase/config.toml" &&
       runGit("show", `${sha}:supabase/config.toml`) === runGit("show", `${foundation}:supabase/config.toml`) + mailConfig,
-    "Supabase configuration/schema changes require the R3 migration executor (except exact R2 local mail wiring)");
+    "Unexpected Supabase configuration change");
   }
   requireThat(!paths.some((path) => /^(sites|exports|\.vercel|\.aws|\.codex|\.agents)\//.test(path) ||
     /(^|\/)\.env/.test(path) && path !== ".env.example"), "Private/local files cannot be delivered");

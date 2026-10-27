@@ -117,7 +117,8 @@ GitHub environment variables:
 | `PRODUCTION_URL` | Unset | Canonical production HTTPS origin, no trailing slash/path. |
 
 Environment secrets: `VERCEL_TOKEN` scoped only to that environment's Vercel scope;
-optional `VERCEL_AUTOMATION_BYPASS_SECRET` for that project's deployment protection.
+optional `VERCEL_AUTOMATION_BYPASS_SECRET` for that project's deployment protection;
+`MIGRATION_DATABASE_URL` for only that environment's hosted database.
 Do not put actual credential values in issues, documentation, Git, images or build
 arguments. The CLI receives its token only in the trusted local process; its
 output is suppressed on failure. Only public URL/key values are build arguments.
@@ -163,23 +164,53 @@ A newer commit arriving during a remote build leaves the stale deployment
 unpromoted. Fresh preview URLs are immutable; no shared test alias is promoted.
 Manual provider operations must not run alongside this owner/lock.
 
-Until R3 adds the migration executor, **all delivery fails closed** if the source
-tree contains SQL/migration/schema files or changes anything under `supabase/`
-relative to foundation `343f5ab`, except the exact R2 local Auth-mail template
-suffix in `auth/email/local-config.toml`. That exception cannot change other
-Supabase settings and grants no schema/migration exception. This checks the full candidate tree, not just
-the last commit, so retrying or making a later code-only commit cannot bypass it.
-CI stays available for reviewing schema work, but no schema-changing app ships.
-Symlinks, submodules, archive-changing `.gitattributes`, tracked private/local files, alternate/programmatic Vercel
-configuration, altered upload ignore rules and altered Vercel delivery
-configuration are also rejected before upload. The CLI explicitly reads the
-trusted JSON configuration, keeping candidate configuration code out of its process.
+R3 replaces the schema barrier with versioned SQL execution. Only timestamped files
+in `supabase/migrations/` may contain deployment SQL. The exact R2 local Auth-mail
+configuration remains the only allowed Supabase configuration change. Symlinks,
+submodules, archive-changing `.gitattributes`, tracked private/local files,
+programmatic Vercel configuration, altered upload ignores and altered CI/Vercel
+configuration remain blocked. Candidate application scripts never run locally with
+release credentials.
 
-R3 must replace this barrier with clean-history/upgrade/RLS/type validation and
-serialized ordered migrations: test first, production second, then application
-deployment. Never reset or seed hosted databases. Never run migrations at image
-build or container startup. Failed migrations halt delivery and need forward
-correction. Once a migration reaches shared test it must not be rewritten.
+Each release job installs pinned `pg@8.16.3` as an isolated trusted tool before
+credentials are available. The protected environment supplies its own
+`MIGRATION_DATABASE_URL` secret, separate from Vercel and all app configuration.
+The executor verifies the connection's project against the selected public URL;
+only the direct project host or a session pooler whose username identifies that
+same project is accepted. Use port 5432, database `postgres`, an encoded password,
+and no URL query options. TLS certificate verification is always enabled. Owners
+must verify runner connectivity/certificates; transaction poolers on port 6543,
+localhost and target swaps fail closed. Do not copy connection values into Git,
+documentation, issues, images, build arguments, public variables or Vercel.
+
+Before connecting, the executor checks that the GitHub environment requires
+reviewers and prevents self-review. Review the exact candidate SHA and SQL before
+approving the environment; also disable administrator bypass as required above.
+One release lock spans test and production. A database advisory lock additionally
+serializes migration sessions. Every migration runs in its own transaction and
+records Supabase-compatible history plus a checksum in the non-exposed
+`pool_delivery` schema. Applied history must be an exact prefix of the reviewed
+candidate, with matching checksums. Unknown, edited, deleted or out-of-order
+history stops release for owner reconciliation. CI also rejects changes to
+inherited migrations. Once applied to shared test, append forward fixes only.
+Do not run a competing hosted CLI push or manually alter migration history.
+
+The sequence is: revalidate current successful CI/source; audit target/provider;
+apply and verify reviewed test migrations; recheck freshness; deploy and smoke
+the test app. Only validated PR-merged current `main` then enters the separate
+production environment, applies those same migrations to production, builds with
+production public settings, smokes and promotes. A migration error rolls back that
+migration and prevents app upload. Earlier successful SQL stays applied and needs
+a forward fix if the release later fails. Error output containing database details
+is suppressed. No hosted reset/seed or migration during image build/startup exists.
+
+R3 is stacked on R2, which is stacked on R1. CI runs against
+`lkluge/auth-session-flow` as well as the earlier bases. Stacked PRs remain
+ineligible for automatic hosted delivery: the inherited preview gate requires a
+PR to `main`, trusted merged workflow/CI configuration and environment review.
+Stacking never authorizes production. Retarget after predecessor merges and
+revalidate the new revision. Missing hosted credentials/protections and actual
+hosted migration/deployment verification remain pending owner setup.
 
 ## Verification record
 
@@ -197,7 +228,7 @@ Local verification on October 26, 2026:
 Local automated evidence and hosted evidence are separate. The PR records the
 exact tested commit and completed CI results. Guard tests exercise failed/skipped
 checks, wrong workflow/branch, direct pushes, forks/untrusted actors, stale PRs
-and queued main, target/URL/project/key mixups, schema rejection, Git duplicate
+and queued main, target/URL/project/key mixups, alternate SQL rejection, migration isolation/failure ordering, Git duplicate
 deployment settings, provider audit failures and false-positive smoke responses.
 Mock provider responses verify decision logic; they do not demonstrate a hosted
 deployment or prove account configuration.
@@ -224,7 +255,7 @@ deployments need the trusted automation path or owner access.
 Application rollback does not roll back SQL. Keep migrations additive/backwards
 compatible so the old app can run during recovery. A database incident needs a
 separately reviewed forward fix, never a hosted reset or destructive automatic down
-migration. No migration credentials are needed or installed by R1.
+migration. Migration credentials stay in protected GitHub environments and never enter the app.
 
 Fix through a reviewed PR and merge to `main`. Re-enable delivery only when ready
 to release current checked main. The staged deployment is smoked and promoted
@@ -242,4 +273,4 @@ alerts using [Vercel plans](https://vercel.com/docs/plans) and
 [Supabase pricing](https://supabase.com/pricing) before approving any purchase.
 R2 adds local Auth mail and sign-in; see [authentication setup](authentication.md)
 for test/production SMTP, canonical origins and the still-pending hosted cycle.
-No schema or ride workflow is included.
+R3 adds the membership schema and ordered migration executor; ride workflows remain deferred.

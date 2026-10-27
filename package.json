@@ -14,6 +14,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --experimental-test-module-mocks --test scripts/*.test.mjs",
     "test:auth": "node scripts/auth-browser.mjs",
+    "test:db": "node scripts/auth-browser.mjs --database-only",
+    "db:types": "node scripts/auth-browser.mjs --write-types",
     "check": "npm run lint && npm run typecheck && npm test && npm run build",
     "supabase:start": "supabase start --network-id pool-local",
     "supabase:stop": "supabase stop --network-id pool-local",
@@ -37,6 +39,7 @@
     "@types/react-dom": "19.3.0",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.3",
+    "pg": "8.16.3",
     "supabase": "2.122.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3"

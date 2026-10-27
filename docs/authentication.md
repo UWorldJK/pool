@@ -150,11 +150,11 @@ For **each** project:
    private/no-store headers at the deployed CDN and absence of cross-user payloads.
    Record revision, origin, SMTP sender and observed results without credentials.
 
-Local template changes do not update hosted settings. R1's delivery barrier permits
-only the exact reviewed local Auth-mail suffix in `auth/email/local-config.toml`
-above the foundation config; it continues rejecting SQL, schemas, migrations and
-every other Supabase configuration change until R3. CI changes must merge before
-preview delivery, as in R1; the stacked PR does not bypass that gate.
+Local template changes do not update hosted settings. Delivery permits only the exact
+reviewed local Auth-mail suffix above the foundation config, plus canonical
+versioned migrations through the R3 executor. Other Supabase configuration changes
+remain blocked. CI changes must merge before preview delivery; stacked checks do
+not authorize a hosted release.
 
 Sources: [Supabase SSR clients and caching](https://supabase.com/docs/guides/auth/server-side/creating-a-client?framework=nextjs),
 [SSR session details](https://supabase.com/docs/guides/auth/server-side/advanced-guide),

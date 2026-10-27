@@ -3,6 +3,7 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { authCookieOptions, getPublicSupabaseConfig } from "./config";
+import type { Database } from "./database.types";
 
 // Writable clients belong only in Server Actions and Route Handlers.
 export async function createClient({ readOnly = false } = {}) {
@@ -10,7 +11,7 @@ export async function createClient({ readOnly = false } = {}) {
   const cookieStore = await cookies();
 
   // This client shares the user's session and must remain subject to RLS.
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.SUPABASE_INTERNAL_URL || url,
     publishableKey,
     {

@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { guard, requireThat } from "./delivery-guard.mjs";
 import { smoke } from "./smoke.mjs";
+import { migrateRelease, migrateThenDeploy, readMigrations } from "./migrate.mjs";
 
 export function validateSettings(target, env) {
   requireThat(["preview", "production"].includes(target) && env.DELIVERY_TARGET === target,
@@ -150,7 +151,10 @@ async function deliver(target) {
     }
     await fresh();
     const args = deploymentArguments(target, env.RELEASE_SHA, env.VERCEL_PROJECT_ID, settings);
-    const deploymentUrl = vercel(args);
+    const deploymentUrl = await migrateThenDeploy(
+      () => migrateRelease(target, env, readMigrations(env.RELEASE_SHA)), fresh,
+      () => vercel(args),
+    );
     await verifyDeployment(deploymentUrl, target, env.RELEASE_SHA, env);
     await smoke(deploymentUrl, { bypass: env.VERCEL_AUTOMATION_BYPASS_SECRET || "" });
     await fresh();

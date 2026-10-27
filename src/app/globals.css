@@ -106,3 +106,12 @@ main > section > nav a {
 [role="alert"] {
   color: #952c22;
 }
+.membership-card { max-width: 46rem; }
+.membership-card h2 { font-size: 1.3rem; font-weight: 600; margin-top: 2rem; }
+.membership-card h3 { font-weight: 600; margin-top: 1.5rem; }
+.membership-card ul { display: grid; gap: 1rem; margin: 1rem 0; }
+.membership-card li { border-bottom: 1px solid #d5ddcf; padding: 0.75rem 0; }
+.membership-card select { min-height: 3rem; border: 1px solid #63796b; border-radius: 0.5rem; padding: 0.65rem; max-width: 100%; }
+.membership-card nav { margin: 1rem 0 2rem; }
+.invitation-link { display: grid; gap: 0.75rem; }
+.auth-form fieldset { display: grid; gap: 1rem; min-width: 0; }

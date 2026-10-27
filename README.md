@@ -6,8 +6,9 @@ Supabase CLI manages the local backend. Production uses a Vercel container and
 hosted Supabase.
 
 Adults can create an email/password account, confirm their email, sign in/out,
-and recover their password. `/app` is a protected empty shell; ride workflows,
-live location, notifications and calendar sync are not implemented. The existing `sites/` and
+and recover their password. `/app` supports families, guardians, circles and manual
+membership invitations. Ride workflows, live location, notifications and calendar
+sync are not implemented. The existing `sites/` and
 `exports/` prototypes remain reference material and are excluded from builds.
 
 ## Start locally
@@ -85,8 +86,9 @@ commands to reuse the data. **To erase and recreate only the local database**, r
 `npm run supabase:reset` while Supabase is running. Do not use volume-pruning
 commands as a normal shutdown step.
 
-SQL migrations belong in `supabase/migrations/` when the first schema is added.
-There are intentionally no ride tables or seed families in this foundation.
+Versioned membership migrations live in `supabase/migrations/`. Apply them to your
+existing local database with `npx supabase db push --local --network-id pool-local`;
+this preserves existing Auth users. There are no ride tables or seed families.
 
 ## Settings and Supabase clients
 
@@ -109,7 +111,8 @@ Protected rendering and mutations verify identity with `auth.getUser()` and requ
 a confirmed, non-anonymous email identity. Normal clients retain public-key access.
 Auth pages, callbacks, redirects and refresh responses are private/no-store; the
 public landing page, static assets and health endpoint do not require Auth.
-Future data tables still need explicit row-level security policies before exposure.
+All membership tables have RLS; protected writes use authenticated transactional
+commands. See [membership and invitation rules](docs/membership.md).
 
 See [authentication setup and verification](docs/authentication.md) for local captured
 mail, confirmation/recovery templates, hosted SMTP and redirect configuration.
@@ -155,6 +158,7 @@ Use `nvm use` (or another version manager) to select the exact `.nvmrc` version.
 npm run check
 npx playwright install --with-deps chromium
 npm run test:auth
+npm run test:db
 bash scripts/validate-compose.sh
 bash scripts/container-smoke.sh
 npm run supabase:check
@@ -162,9 +166,11 @@ docker compose exec web npm run supabase:check -- --internal
 ```
 
 GitHub's **CI / checks** runs `npm ci`, `npm run check`, actual Auth browser tests
+and clean/upgrade migrations, generated-type drift and real RLS/command tests
 against disposable local Supabase, disposable Compose validation and the final
 `linux/amd64` container smoke on every PR to `main`
-and every merged `main` revision (and the R2 stack against R1). These mandatory checks need no hosted account,
+and every merged `main` revision (including the R2 and R3 stacked PR bases). These
+mandatory checks need no hosted account,
 `.env.local`, prototypes or cloud credentials. Guard regressions run with `npm test`.
 When checking inside the development container, explicitly use production mode:
 `docker compose run --rm --no-deps -e NODE_ENV=production web npm run check`.
@@ -173,7 +179,8 @@ The connectivity checks use only the public project key, even when a service-rol
 or secret key is present in the environment. They call Auth health and Auth
 settings to verify reachability and key acceptance without creating user data.
 They do not verify database queries, table grants, or row-level security policies;
-add those checks when the application schema exists. The PostgREST root
+use `npm run test:db` for actual database permissions and migration checks. The
+PostgREST root
 (`/rest/v1/`) requires admin access and is unsuitable for a public-key check.
 
 The public check uses the address available to the browser; to verify browser
@@ -218,8 +225,8 @@ Actions owns gated Vercel container delivery. Trusted previews use an isolated
 test backend; production requires successful checks on current, protected,
 PR-merged `main`, test delivery, environment approval and a final freshness check.
 Git-triggered Vercel deployments are disabled in `vercel.json`; the provider Git
-integration must also be disconnected. Schema-changing delivery fails closed
-until R3 adds migration execution. See [deployment/setup/rollback](docs/deployment.md)
+integration must also be disconnected. Reviewed migrations execute before dependent
+application delivery, with checksums and serialized test/production ordering. See [deployment/setup/rollback](docs/deployment.md)
 for the required check, protected environments, exact variable mapping and setup
 status. Hosted delivery is pending provider setup and verification; this PR does
 not create accounts or paid services.

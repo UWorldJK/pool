@@ -91,8 +91,9 @@ function sourceGit({ paths = ["package.json"], mode = "100644", diff = "", chang
     assert.fail("Unexpected git command");
   };
 }
-test("source allows a schema-free tree but blocks migrations, config drift and CI tampering", () => {
+test("source allows canonical migrations but blocks alternate SQL, config drift and CI tampering", () => {
   validateSource(sha, sourceGit());
+  validateSource(sha, sourceGit({ paths: ["supabase/migrations/20261027000100_membership.sql"], diff: "supabase/migrations/20261027000100_membership.sql" }));
   validateSource(sha, sourceGit({ diff: "supabase/config.toml", authMail: true }));
   for (const options of [
     { paths: ["supabase/migrations/001.sql"] }, { paths: ["db/change.SQL"] },
@@ -208,6 +209,7 @@ test("workflow wiring keeps untrusted checks secretless and uses one non-cancell
   const releaseText = readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8");
   const release = load(releaseText);
   assert.deepEqual(Object.keys(ci.on), ["pull_request", "push"]);
+  assert.ok(ci.on.pull_request.branches.includes("lkluge/auth-session-flow"), "R3 stacked base runs mandatory checks");
   assert.ok(!JSON.stringify(ci).includes("secrets."));
   assert.equal(ci.jobs.checks.steps.find((step) => step.uses?.startsWith("actions/setup-node")).with["node-version-file"], ".nvmrc");
   assert.equal(ci.jobs.checks.steps.find((step) => step.uses?.startsWith("docker/setup-compose-action")).with.version, "v2.40.3");
