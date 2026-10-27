@@ -70,8 +70,15 @@ export function validateSource(sha, runGit = git) {
   requireThat(!paths.some((path) => /\.sql($|\.)|(^|\/)(migrations|schemas)(\/|$)/i.test(path)),
     "Schema-changing delivery is blocked until R3 adds the ordered migration executor");
   const foundation = "343f5abd59c77d3d6f06a542557b329c464177c0";
-  requireThat(!runGit("diff", "--name-only", foundation, sha, "--", "supabase").trim(),
-    "Supabase configuration/schema changes require the R3 migration executor");
+  const backendChanges = runGit("diff", "--name-only", foundation, sha, "--", "supabase").trim();
+  if (backendChanges) {
+    // R2 needs local Auth mail wiring, not a schema executor. Permit exactly the
+    // reviewed template suffix; every other backend/config change stays blocked.
+    const mailConfig = readFileSync(new URL("../auth/email/local-config.toml", import.meta.url), "utf8");
+    requireThat(backendChanges === "supabase/config.toml" &&
+      runGit("show", `${sha}:supabase/config.toml`) === runGit("show", `${foundation}:supabase/config.toml`) + mailConfig,
+    "Supabase configuration/schema changes require the R3 migration executor (except exact R2 local mail wiring)");
+  }
   requireThat(!paths.some((path) => /^(sites|exports|\.vercel|\.aws|\.codex|\.agents)\//.test(path) ||
     /(^|\/)\.env/.test(path) && path !== ".env.example"), "Private/local files cannot be delivered");
   requireThat(!paths.some((path) => /^(vercel\.(ts|js|mjs|cjs|toml)|now\.json)$/.test(path)),

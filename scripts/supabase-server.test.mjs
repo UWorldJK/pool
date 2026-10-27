@@ -32,7 +32,7 @@ mock.module("@supabase/ssr", { exports: { createServerClient } });
 mock.module("next/headers", { exports: { cookies: async () => cookieStore } });
 
 // Import the actual helper and config; only the SDK and Next.js boundaries are mocked.
-const { createClient } = await import(serverModule.href);
+const { createClient, createReadOnlyClient } = await import(serverModule.href);
 resolutionHooks.deregister();
 after(() => mock.restoreAll());
 
@@ -77,7 +77,7 @@ test("the session client shares the user's cookies and forwards refreshed cookie
   };
   const clearedCookie = { name: "old-session", value: "", options: { maxAge: 0 } };
 
-  assert.deepEqual(options.cookieOptions, { name: "pool-auth" });
+  assert.deepEqual(options.cookieOptions, { name: "pool-auth", path: "/", sameSite: "lax", secure: process.env.NODE_ENV === "production" });
   assert.equal(options.cookies.getAll(), userCookies);
   options.cookies.setAll([refreshedCookie, clearedCookie]);
   assert.deepEqual(cookieStore.set.mock.calls.map((call) => call.arguments), [
@@ -91,4 +91,29 @@ test("the session client requires the public key even when admin keys are presen
 
   await assert.rejects(createClient(), /NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/);
   assert.equal(createServerClient.mock.callCount(), 0);
+});
+
+test("Server Component reads cannot write cookies; action cookie failures are not swallowed", async () => {
+  cookieStore.set.mock.mockImplementation(() => { throw new Error("read-only cookie store"); });
+  await createReadOnlyClient();
+  const [, , readOptions] = createServerClient.mock.calls.at(-1).arguments;
+  const update = [{ name: "pool-auth", value: "new", options: { path: "/" } }];
+  assert.doesNotThrow(() => readOptions.cookies.setAll(update));
+  assert.equal(cookieStore.set.mock.callCount(), 0);
+  assert.equal(readOptions.cookies.getAll(), userCookies);
+  await createClient();
+  const [, , writeOptions] = createServerClient.mock.calls.at(-1).arguments;
+  assert.throws(() => writeOptions.cookies.setAll(update), /read-only cookie store/);
+  cookieStore.set.mock.mockImplementation(() => {});
+});
+
+test("each request gets its own client and Auth fetches explicitly bypass shared caches", async (context) => {
+  const fetchMock = context.mock.method(globalThis, "fetch", async () => new Response("{}"));
+  await createClient();
+  await createClient();
+  assert.equal(createServerClient.mock.callCount(), 2);
+  const [, , options] = createServerClient.mock.calls[0].arguments;
+  await options.global.fetch("https://public-project.example/auth/v1/user", { cache: "force-cache", headers: { apikey: "public-key" } });
+  assert.equal(fetchMock.mock.calls[0].arguments[1].cache, "no-store");
+  assert.deepEqual(fetchMock.mock.calls[0].arguments[1].headers, { apikey: "public-key" });
 });

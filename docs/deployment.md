@@ -165,7 +165,9 @@ Manual provider operations must not run alongside this owner/lock.
 
 Until R3 adds the migration executor, **all delivery fails closed** if the source
 tree contains SQL/migration/schema files or changes anything under `supabase/`
-relative to foundation `343f5ab`. This checks the full candidate tree, not just
+relative to foundation `343f5ab`, except the exact R2 local Auth-mail template
+suffix in `auth/email/local-config.toml`. That exception cannot change other
+Supabase settings and grants no schema/migration exception. This checks the full candidate tree, not just
 the last commit, so retrying or making a later code-only commit cannot bypass it.
 CI stays available for reviewing schema work, but no schema-changing app ships.
 Symlinks, submodules, archive-changing `.gitattributes`, tracked private/local files, alternate/programmatic Vercel
@@ -238,5 +240,6 @@ Local checks do not provision hosted services. Owners must verify current plan
 eligibility, project/scope limits, approval protection availability and spending
 alerts using [Vercel plans](https://vercel.com/docs/plans) and
 [Supabase pricing](https://supabase.com/pricing) before approving any purchase.
-R2 owns real Auth email/redirect setup. No SMTP, sign-in, schema, ride workflow or
-visual change is included in R1.
+R2 adds local Auth mail and sign-in; see [authentication setup](authentication.md)
+for test/production SMTP, canonical origins and the still-pending hosted cycle.
+No schema or ride workflow is included.

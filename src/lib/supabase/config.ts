@@ -1,4 +1,11 @@
-export const authCookieOptions = { name: "pool-auth" };
+export const authCookieOptions = {
+  name: "pool-auth",
+  path: "/",
+  sameSite: "lax" as const,
+  // Local development uses HTTP; deployed builds use HTTPS. Browsers also
+  // support Secure cookies on localhost for the production-mode Auth tests.
+  secure: process.env.NODE_ENV === "production",
+};
 
 export function getPublicSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

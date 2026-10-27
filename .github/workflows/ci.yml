@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, lkluge/ci-vercel-delivery]
   push:
     branches: [main]
 
@@ -17,7 +17,7 @@ jobs:
   checks:
     name: checks
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.invalid
@@ -33,6 +33,10 @@ jobs:
           node-version-file: .nvmrc
       - run: npm ci
       - run: npm run check
+      - name: Install Auth browser
+        run: npx playwright install --with-deps chromium
+      - name: Real disposable Supabase Auth browser tests
+        run: npm run test:auth
       - name: Verify pinned deployment CLI without credentials
         run: |
           npm install --prefix "$RUNNER_TEMP/vercel-cli" --ignore-scripts --no-audit --no-fund vercel@65.4.0
