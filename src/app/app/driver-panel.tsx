@@ -7,10 +7,11 @@ export async function DriverPanel({ status }: { status: DriverStatus }) {
   const client = await createReadOnlyClient();
   const trip = await client.from("ride_trips").select("completed_at").eq("ride_id",status.ride_id).maybeSingle();
   if (trip.error) throw new Error("Trip status could not be loaded");
+  const completed = Boolean(trip.data?.completed_at || status.current_assignment_release_reason === "completed");
   const fields = { proposal_id:status.proposal_id,revision:String(status.ride_revision) };
   const live = status.proposal_status === "pending";
-  return <section><h2>Driver and assignment</h2><p><strong>{status.cancelled_at ? "Cancelled ride" : trip.data?.completed_at ? "Ride completed" : coverageLabel(status.coverage)}</strong> · Proposal {status.proposal_status}</p>
-    {status.mode !== "initial" && <><h3>{status.mode === "optional_swap" ? "Optional driver swap" : "Unavailable-driver replacement"}</h3><p>{status.coverage === "confirmed" && status.proposal_status !== "confirmed" ? `Current driver: ${status.current_driver_name}. This replacement request is ${status.proposal_status}; the original assignment remains in place.` : status.coverage !== "confirmed" ? "There is no confirmed driver. Missing replies, decline, cancellation or expiry leave this ride uncovered." : "Replacement confirmed."}</p></>}
+  return <section><h2>Driver and assignment</h2><p><strong>{status.cancelled_at ? "Cancelled ride" : completed ? "Ride completed" : coverageLabel(status.coverage)}</strong> · Proposal {status.proposal_status}</p>
+    {status.mode !== "initial" && <><h3>{status.mode === "optional_swap" ? "Optional driver swap" : "Unavailable-driver replacement"}</h3><p>{completed ? `Trip completed with ${status.current_driver_name}. This replacement request is ${status.proposal_status}.` : status.coverage === "confirmed" && status.proposal_status !== "confirmed" ? `Current driver: ${status.current_driver_name}. This replacement request is ${status.proposal_status}; the original assignment remains in place.` : status.coverage !== "confirmed" ? "There is no confirmed driver. Missing replies, decline, cancellation or expiry leave this ride uncovered." : "Replacement confirmed."}</p></>}
     <p>{status.driver_name} · {status.vehicle_label} · Vehicle version {status.vehicle_version} · {status.passenger_seats} registered passenger seats</p>
     <p>{status.rider_count} riders · {status.booster_count} booster seats · {status.child_seat_count} child seats</p>
     <p>Driver acceptance: {status.accepted_at ? "Accepted" : "Required"} · Child consents: {status.consent_count} of {status.rider_count}</p>

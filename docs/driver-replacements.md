@@ -75,6 +75,11 @@ complete. Plan/roster/vehicle dependency guards reject changes while replies or
 assignments are live. After closure, permitted changes require fresh proposals;
 reply checks never carry old approvals into a changed plan or vehicle. Closed,
 expired, superseded and finalized replacement responses cannot reopen a request.
+Completed coverage follows the actual trip assignment even when a failed swap is
+still the latest proposal. Completed-driver identity is separate from an active
+reservation, retaining R6's authorized history reads and detail screen after the
+final receipt releases the reservation. Forward migrations preserve existing R7
+trips and immutable events while correcting these projections.
 First pickup and replacement finalization serialize on the ride; after any pickup,
 replacement requests/replies and ordinary withdrawal/cancellation are unavailable.
 

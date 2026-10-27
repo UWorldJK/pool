@@ -16,6 +16,24 @@ export async function replacementUpgradeIdentity(status) {
     assert.deepEqual((await f.a.db.from("replacement_events").select("*").eq("ride_id",r.ride)).data,[]);
   };
 }
+// Build actual R7 data under the original R7 migration, before the forward fixes.
+export async function replacementCompletedUpgradeIdentity(status) {
+  const f=await setup(status),{a,b,d,g,children:[ca,cb]}=f,r=await f.confirmed();
+  const original=await state(f,r),car=await ok(g.db,"save_vehicle",{p_id:crypto.randomUUID(),p_label:"Upgrade candidate",p_passenger_seats:3,p_version:0,p_retire:false});
+  const id=await ok(a.db,"request_replacement",{p_id:crypto.randomUUID(),p_ride_id:r.ride,p_family_id:a.family,p_revision:r.revision,p_driver_id:g.id,p_driver_family_id:d.family,p_vehicle_id:car,p_vehicle_version:1,p_mode:"optional_swap",p_original_assignment_id:original.current_assignment_id,p_original_assignment_revision:original.current_assignment_revision,p_deadline:original.starts_at});
+  await ok(g.db,"decline_driver_proposal",{p_id:id,p_revision:r.revision});
+  for(const [parent,child] of [[a,ca],[b,cb]]) await ok(parent.db,"designate_recipient",{p_ride_id:r.ride,p_child_id:child,p_recipient_id:parent.id,p_revision:r.revision,p_version:0});
+  for(const [parent,child] of [[a,ca],[b,cb]]) {
+    const args={p_request_id:crypto.randomUUID(),p_ride_id:r.ride,p_child_id:child,p_revision:r.revision,p_version:1};
+    await ok(d.db,"record_pickup",args);await ok(d.db,"report_arrival",{...args,p_request_id:crypto.randomUUID(),p_version:2});await ok(parent.db,"confirm_handoff",{...args,p_request_id:crypto.randomUUID(),p_version:3});
+  }
+  assert.equal((await state(f,r)).coverage,"needs_driver","Original R7 schema reproduces the reviewed completed-coverage bug");
+  return async()=>{
+    const after=await state(f,r,d.db);assert.equal(after.coverage,"confirmed");assert.equal(after.is_completed_driver,true);assert.equal(after.is_current_driver,false);
+    assert.equal((await d.db.from("ride_events").select("*").eq("ride_id",r.ride)).data.length,6,"Existing R7 events survive the forward read fixes");
+    assert.ok((await d.db.from("ride_trips").select("completed_at").eq("ride_id",r.ride).single()).data.completed_at);
+  };
+}
 export async function replacementPermissionTests(status,sql) {
   const f=await setup(status),{a,b,d,g,out,children:[ca,cb],confirmed}=f;
   const car=await ok(g.db,"save_vehicle",{p_id:crypto.randomUUID(),p_label:"Replacement van",p_passenger_seats:3,p_version:0,p_retire:false});
@@ -159,6 +177,12 @@ export async function replacementPermissionTests(status,sql) {
     const completed=await state(f,x);assert.equal(completed.proposal_id,q.p_id,"The unsuccessful candidate remains newest");
     assert.equal(completed.coverage,"confirmed",`${outcome}: completed original assignment still supplies historical coverage`);
     assert.equal((await ok(a.db,"driver_statuses",{p_ride_ids:[x.ride]}))[0].coverage,"confirmed");
+    const actualDriver=await state(f,x,d.db);
+    assert.equal(actualDriver.is_current_driver,false,"Completed reservation is not active");assert.equal(actualDriver.is_driver,false,"Latest candidate is a different adult");
+    assert.equal(actualDriver.is_completed_driver,true,"The actual driver retains completed-trip identity");
+    assert.ok((await ok(d.db,"driver_inbox",{})).some(row=>row.ride_id===x.ride && row.is_completed_driver));
+    assert.equal((await d.db.from("ride_events").select("*").eq("ride_id",x.ride)).data.length,6);
+    assert.deepEqual(await ok(out.db,"driver_status",{p_ride_id:x.ride}),[]);
   }
   // Last approval versus original withdrawal/cancellation/pickup. Locks make both orderings safe.
   for(const race of ["withdraw","cancel","pickup"]) {

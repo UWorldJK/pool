@@ -22,7 +22,7 @@ export default async function RideDetail({ params, searchParams }: { params: Pro
   const trip = await client.from("ride_trips").select("completed_at").eq("ride_id",id).maybeSingle();
   if (trip.error) throw new Error("Trip could not be loaded");
   const frozen = Boolean(trip.data);
-  if (!offer && (status?.is_driver || status?.is_current_driver)) {
+  if (!offer && (status?.is_driver || status?.is_current_driver || status?.is_completed_driver)) {
     const [exact, enrolled] = await Promise.all([client.from("ride_locations").select("pickup,destination").eq("ride_id",id).maybeSingle(),client.from("ride_riders").select("child_id,display_name,seat_requirement").eq("ride_id",id)]);
     if (exact.error || enrolled.error) throw new Error("Assignment could not be loaded");
     return <><h1>{status.pickup_summary} → {status.destination_summary}</h1><p>Pickup: {rideTime(status.starts_at,status.timezone)}<br />Drop-off: {rideTime(status.ends_at,status.timezone)}</p><DriverPanel status={status} />

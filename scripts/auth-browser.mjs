@@ -16,7 +16,7 @@ import { permissionTests, baselineIdentity } from "./membership-permissions.mjs"
 import { ridePermissionTests, rideUpgradeIdentity } from "./ride-permissions.mjs";
 import { driverPermissionTests, driverUpgradeIdentity } from "./driver-permissions.mjs";
 import { handoffPermissionTests, handoffUpgradeIdentity } from "./handoff-permissions.mjs";
-import { replacementPermissionTests, replacementUpgradeIdentity } from "./replacement-permissions.mjs";
+import { replacementPermissionTests, replacementUpgradeIdentity, replacementCompletedUpgradeIdentity } from "./replacement-permissions.mjs";
 import { migrationDatabaseTests } from "./migration-database-tests.mjs";
 
 // No external URL/key options: this command can only use the fresh CLI project
@@ -170,8 +170,13 @@ try {
   execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
   await verifyR6();
   const verifyR7 = await replacementUpgradeIdentity(status);
+  copyFileSync("supabase/migrations/20261027000600_driver_replacements.sql", join(directory,"supabase/migrations/20261027000600_driver_replacements.sql"));
+  execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  await verifyR7();
+  const verifyCompletedR7 = await replacementCompletedUpgradeIdentity(status);
   cpSync("supabase/migrations", join(directory, "supabase/migrations"), { recursive: true });
   execFileSync(cli, ["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  await verifyCompletedR7();
   await verifyR7();
   await verifyR6();
   function generatedTypes() {

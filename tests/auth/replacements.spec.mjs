@@ -24,7 +24,7 @@ async function replayDenied(page,context,click) {
   let resolve;const captured=new Promise(r=>{resolve=r;});await page.route("**/*",async route=>{const r=route.request();if(r.method()==="POST"&&r.headers()["next-action"]){resolve({url:r.url(),data:r.postDataBuffer(),headers:r.headers()});await route.abort();}else await route.continue();});await click();const post=await captured;await page.unroute("**/*");const res=await context.request.post(post.url,{data:post.data,headers:{"content-type":post.headers["content-type"],"next-action":post.headers["next-action"],origin:"http://localhost:3100",accept:"text/x-component"}});expect(await res.text()).toContain("unavailable to this account");
 }
 test("R7 real adults preserve optional swaps, reset unavailable consent and persist replacement across independent sessions",async({browser})=>{
-  const a=await account(browser,"r7-a"),b=await account(browser,"r7-b"),d=await account(browser,"r7-driver"),second=await browser.newContext();
+  const a=await account(browser,"r7-a"),b=await account(browser,"r7-b"),d=await account(browser,"r7-driver"),second=await browser.newContext(),historySession=await browser.newContext();
   try {
     await family(a.page,"R7 family A","R7 Guardian A");await family(b.page,"R7 family B","R7 Guardian B");await family(d.page,"R7 driver family","R7 original driver");
     await a.page.getByLabel("Circle name").fill("R7 circle");await a.page.getByRole("button",{name:"Create circle",exact:true}).click();await a.page.getByRole("link",{name:"Open saved membership"}).click();await expect(a.page.getByRole("heading",{name:"R7 circle",exact:true})).toBeVisible();const circle=a.page.url();
@@ -49,5 +49,30 @@ test("R7 real adults preserve optional swaps, reset unavailable consent and pers
     for(const page of [a.page,b.page,independent]){await page.goto(ride);await expect(page.getByText("Confirmed",{exact:true})).toBeVisible();await expect(page.getByText("Replacement confirmed.",{exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Replacement activity",exact:true})).toBeVisible();}
     // A second optional swap succeeds only with the new candidate's real acceptance and both families.
     await replacement(a.page,"R7 original driver");await d.page.goto("/app/driving?pending=1");await d.page.getByRole("link",{name:"Open ride details",exact:true}).click();await accept(d.page);await a.page.reload();await approve(a.page,"R7 child A");await b.page.reload();await approve(b.page,"R7 child B");await d.page.reload();await expect(d.page.getByText("Replacement confirmed.",{exact:true})).toBeVisible();await expect(d.page.getByText("Pickup: Private R7 pickup",{exact:true})).toBeVisible();
-  } catch(error) { console.error(error.stack ?? String(error)); throw error; } finally {await Promise.all([a.context.close(),b.context.close(),d.context.close(),second.close()]);}
+    // An unsuccessful new swap must preserve the actual driver's completed page and history.
+    const journey=(page,name)=>page.getByRole("article",{name:`Journey for ${name}`,exact:true});
+    async function report(page,name,button) {
+      const form=journey(page,name).locator("form").filter({has:page.getByRole("button",{name:button,exact:true})});
+      await form.getByRole("checkbox").check();await form.getByRole("button",{name:button,exact:true}).click();
+    }
+    for(const [parent,name] of [[a,"R7 child A"],[b,"R7 child B"]]) {
+      await parent.page.goto(ride);const article=journey(parent.page,name);
+      await article.getByLabel(`Designated guardian for ${name}`).selectOption({index:1});await article.getByRole("checkbox").check();
+      await article.getByRole("button",{name:"Save designated guardian",exact:true}).click();await expect(article.getByRole("status")).toContainText("Designated guardian saved");
+    }
+    await replacement(a.page,"R7 Guardian A");await d.page.goto(ride);
+    for(const name of ["R7 child A","R7 child B"]) {
+      await report(d.page,name,"Report pickup");await expect(journey(d.page,name).getByText("Picked up",{exact:true})).toBeVisible();
+      await report(d.page,name,"Report arrival");await expect(journey(d.page,name).getByText("Awaiting guardian receipt",{exact:true})).toBeVisible();
+    }
+    for(const [parent,name] of [[a,"R7 child A"],[b,"R7 child B"]]) {
+      await parent.page.goto(ride);await report(parent.page,name,"Confirm child received");await expect(journey(parent.page,name).getByText("Handoff completed",{exact:true})).toBeVisible();
+    }
+    await d.page.goto(ride);await expect(d.page.getByText("Ride completed — every child’s handoff is confirmed.",{exact:true})).toBeVisible();
+    await expect(d.page.getByRole("heading",{name:"Ride activity",exact:true})).toBeVisible();await expect(d.page.getByText("Handoff completed",{exact:true})).toHaveCount(2);
+    await expect(d.page.getByRole("button",{name:/Report pickup|Report arrival|Withdraw as driver/})).toHaveCount(0);
+    await a.page.goto("/app/schedule?date=2028-09-01&timezone=UTC");await expect(a.page.getByText("Outbound · Confirmed",{exact:true})).toBeVisible();await expect(a.page.getByText("Manually reported: Ride completed",{exact:true})).toBeVisible();
+    const historyPage=await historySession.newPage();await historyPage.goto("/sign-in");await historyPage.getByLabel("Email address").fill(d.email);await historyPage.getByLabel("Password",{exact:true}).fill(password);await historyPage.getByRole("button",{name:"Sign in",exact:true}).click();await expect(historyPage).toHaveURL(/\/app$/);
+    await historyPage.goto("/app/driving");await historyPage.getByRole("link",{name:"Open ride details",exact:true}).click();await expect(historyPage.getByRole("heading",{name:"Ride activity",exact:true})).toBeVisible();await expect(historyPage.getByText("Handoff completed",{exact:true})).toHaveCount(2);
+  } catch(error) { console.error(error.stack ?? String(error)); throw error; } finally {await Promise.all([a.context.close(),b.context.close(),d.context.close(),second.close(),historySession.close()]);}
 });
