@@ -143,6 +143,23 @@ export async function replacementPermissionTests(status,sql) {
     assert.equal((await reply).error?.code,"PT410");assert.equal(active(delayed),d.id);assert.equal((await state(f,delayed)).consent_count,1);
   }finally{await blocker.end();}
   }
+  // A failed swap must not make a completed original trip look uncovered.
+  for(const outcome of ["cancel","decline","expiry","pickup"]) {
+    const x=await confirmed(),q=await request(x);
+    if(outcome==='cancel') await ok(a.db,"cancel_driver_proposal",{...q,p_family_id:a.family});
+    if(outcome==='decline') await ok(g.db,"decline_driver_proposal",q);
+    if(outcome==='expiry') sql(`update public.driver_proposals set deadline=clock_timestamp()-interval '1 second' where id='${q.p_id}'`);
+    for(const [parent,child] of [[a,ca],[b,cb]]) await ok(parent.db,"designate_recipient",{p_ride_id:x.ride,p_child_id:child,p_recipient_id:parent.id,p_revision:x.revision,p_version:0});
+    for(const [parent,child] of [[a,ca],[b,cb]]) {
+      const args={p_request_id:crypto.randomUUID(),p_ride_id:x.ride,p_child_id:child,p_revision:x.revision,p_version:1};
+      await ok(d.db,"record_pickup",args);await ok(d.db,"report_arrival",{...args,p_request_id:crypto.randomUUID(),p_version:2});
+      await ok(parent.db,"confirm_handoff",{...args,p_request_id:crypto.randomUUID(),p_version:3});
+    }
+    assert.equal(active(x),"","Completion releases the actual original reservation");
+    const completed=await state(f,x);assert.equal(completed.proposal_id,q.p_id,"The unsuccessful candidate remains newest");
+    assert.equal(completed.coverage,"confirmed",`${outcome}: completed original assignment still supplies historical coverage`);
+    assert.equal((await ok(a.db,"driver_statuses",{p_ride_ids:[x.ride]}))[0].coverage,"confirmed");
+  }
   // Last approval versus original withdrawal/cancellation/pickup. Locks make both orderings safe.
   for(const race of ["withdraw","cancel","pickup"]) {
     const x=await confirmed(),q=await ready(x),s=await state(f,x);
