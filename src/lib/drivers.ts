@@ -15,3 +15,14 @@ export function driverError(code: string) {
     default: return "We could not save this change. Your request may have reached the server; reload before retrying.";
   }
 }
+
+export function driverPageCursor(query: { after_start?: string; after_id?: string }) {
+  if (!query.after_start && !query.after_id) return {};
+  if (!query.after_start || query.after_start.length > 50 || !Number.isFinite(Date.parse(query.after_start)) || !query.after_id || !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(query.after_id)) throw new Error("Invalid driving page. Open the first page and try again.");
+  return { p_after_start:new Date(query.after_start).toISOString(),p_after_id:query.after_id };
+}
+export function driverNextPage(last: DriverStatus, pendingOnly: boolean) {
+  const query = new URLSearchParams({ after_start:last.starts_at,after_id:last.ride_id });
+  if (pendingOnly) query.set("pending","1");
+  return `/app/driving?${query}`;
+}

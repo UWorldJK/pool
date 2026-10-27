@@ -29,3 +29,11 @@ test("database conflicts/deadlines/authority remain failures for all actions, ne
   }
   rpc.mock.mockImplementation(async()=>({data:"confirmed",error:null}));assert.match((await driverAction({},form({...base,command:"consentForOwnChildren"}))).message,/Confirmed/);
 });
+
+test("driving pagination preserves a paired instant/ride cursor and pending filter",async()=>{
+  const {driverPageCursor,driverNextPage}=await import("../src/lib/drivers.ts");
+  const next=driverNextPage({starts_at:"2027-09-01T14:00:00+00:00",ride_id:ride},true);
+  const query=Object.fromEntries(new URL(next,"https://example.test").searchParams);
+  assert.equal(query.pending,"1");assert.deepEqual(driverPageCursor(query),{p_after_start:"2027-09-01T14:00:00.000Z",p_after_id:ride});
+  for(const bad of [{after_start:"2027-09-01"},{after_id:ride},{after_start:"bad",after_id:ride},{after_start:"2027-09-01",after_id:"bad"}])assert.throws(()=>driverPageCursor(bad),/Invalid driving page/);
+});

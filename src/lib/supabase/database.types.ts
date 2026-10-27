@@ -438,13 +438,23 @@ isOneToOne: false
 "decline_driver_proposal":
 { Args: { "p_id": string,"p_revision": number }; Returns: string
                            },
+"driver_inbox":
+{ Args: { "p_after_id"?: string,"p_after_start"?: string,"p_limit"?: number,"p_pending_only"?: boolean }; Returns: {
+              "accepted_at": string,"available_seats": number,"booster_count": number,"cancelled_at": string,"child_seat_count": number,"consent_count": number,"coverage": string,"deadline": string,"destination_summary": string,"driver_id": string,"driver_name": string,"ends_at": string,"is_driver": boolean,"passenger_seats": number,"pickup_summary": string,"proposal_id": string,"proposal_status": string,"restraints_confirmed": boolean,"ride_id": string,"ride_revision": number,"rider_count": number,"starts_at": string,"timezone": string,"vehicle_id": string,"vehicle_label": string,"vehicle_version": number
+            }[]
+                           },
 "driver_options":
 { Args: { "p_ride_id": string }; Returns: {
               "display_name": string,"driver_family_id": string,"driver_id": string,"passenger_seats": number,"vehicle_id": string,"vehicle_label": string,"vehicle_version": number
             }[]
                            },
 "driver_status":
-{ Args: { "p_ride_id"?: string }; Returns: {
+{ Args: { "p_ride_id": string }; Returns: {
+              "accepted_at": string,"available_seats": number,"booster_count": number,"cancelled_at": string,"child_seat_count": number,"consent_count": number,"coverage": string,"deadline": string,"destination_summary": string,"driver_id": string,"driver_name": string,"ends_at": string,"is_driver": boolean,"passenger_seats": number,"pickup_summary": string,"proposal_id": string,"proposal_status": string,"restraints_confirmed": boolean,"ride_id": string,"ride_revision": number,"rider_count": number,"starts_at": string,"timezone": string,"vehicle_id": string,"vehicle_label": string,"vehicle_version": number
+            }[]
+                           },
+"driver_statuses":
+{ Args: { "p_ride_ids": (string)[] }; Returns: {
               "accepted_at": string,"available_seats": number,"booster_count": number,"cancelled_at": string,"child_seat_count": number,"consent_count": number,"coverage": string,"deadline": string,"destination_summary": string,"driver_id": string,"driver_name": string,"ends_at": string,"is_driver": boolean,"passenger_seats": number,"pickup_summary": string,"proposal_id": string,"proposal_status": string,"restraints_confirmed": boolean,"ride_id": string,"ride_revision": number,"rider_count": number,"starts_at": string,"timezone": string,"vehicle_id": string,"vehicle_label": string,"vehicle_version": number
             }[]
                            },

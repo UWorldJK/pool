@@ -130,6 +130,28 @@ export async function driverPermissionTests(status,sql) {
   assert.deepEqual((await d.db.from("children").select("*").eq("family_id",fa)).data,[]);
   const driverAssignments=await d.db.from("driver_assignments").select("*").eq("ride_id",r.ride);assert.ifError(driverAssignments.error);assert.equal(driverAssignments.data.length,1);
   assert.deepEqual((await d.db.from("driver_proposals").select("*").eq("ride_id",r.ride)).data,[],"Confirmed driver uses projection, not historical roster snapshots");
+  // More history than the Data API's max_rows must not hide current coverage.
+  // Bulk closed fixtures are setup only; every read assertion uses real sessions.
+  sql(`with history as (
+    insert into public.rides(id,circle_id,creator_family_id,created_by,pickup_summary,destination_summary,direction,starts_at,ends_at,timezone,revision,creation_digest)
+      select gen_random_uuid(),'${circle}','${fa}','${a.id}','Historic area','Historic activity','outbound',
+        '2021-01-01Z'::timestamptz+n*interval '1 hour','2021-01-01Z'::timestamptz+(n+1)*interval '1 hour','UTC',2,extensions.digest(n::text,'sha256') from generate_series(1,1005) n returning id,starts_at
+  ), participants as (
+    insert into public.ride_families(ride_id,circle_id,family_id,status,responded_at) select id,'${circle}','${fa}','joined',clock_timestamp() from history returning ride_id
+  ) insert into public.driver_proposals(id,ride_id,ride_revision,nominated_by,nominating_family_id,driver_id,driver_family_id,vehicle_id,vehicle_version,roster,deadline,status,closed_at)
+    select gen_random_uuid(),h.id,2,'${a.id}','${fa}','${d.id}','${fd}','${car}',1,
+      jsonb_build_array(jsonb_build_object('child','${ca}','family','${fa}','seat','booster')),h.starts_at,'cancelled',clock_timestamp() from history h join participants rf on rf.ride_id=h.id`);
+  const exactStatuses=await ok(a.db,"driver_statuses",{p_ride_ids:[r.ride]});assert.equal(exactStatuses[0].coverage,"confirmed");
+  assert.deepEqual(await ok(outsider.db,"driver_statuses",{p_ride_ids:[r.ride]}),[]);
+  const page1=await ok(d.db,"driver_inbox",{p_limit:1000});assert.equal(page1.length,1000);assert.ok(page1.every(p=>p.is_driver));
+  const cursor=page1.at(-1),page2=await ok(d.db,"driver_inbox",{p_limit:1000,p_after_start:cursor.starts_at,p_after_id:cursor.ride_id});
+  assert.equal(page1.length+page2.length,1007);assert.ok(page2.some(p=>p.ride_id===r.ride && p.coverage==='confirmed'));
+  assert.ok(page2.every(p=>!page1.some(first=>first.ride_id===p.ride_id)));
+  assert.deepEqual(await ok(a.db,"driver_inbox",{}),[],"Driver role filters before pagination, despite 1000+ authorized family proposals");
+  assert.deepEqual(await ok(d.db,"driver_inbox",{p_pending_only:true}),[],"Pending filter excludes historical proposals before pagination");
+  await denied(a.db,"driver_status",{p_ride_id:null},"PT400");
+  await denied(a.db,"driver_statuses",{p_ride_ids:[r.ride,r.ride]},"PT400");
+  for(const bad of [{p_limit:0},{p_limit:1001},{p_after_id:r.ride},{p_after_start:"infinity",p_after_id:r.ride}]) await denied(d.db,"driver_inbox",bad,"PT400");
   await denied(a.db,"propose_driver",nomination({...r,revision:p.p_revision}),"PT409");
   await denied(a.db,"cancel_driver_proposal",{...p,p_family_id:fa},"PT409");
   await denied(a.db,"revoke_own_consent",{...p,p_family_id:fa,p_child_ids:[cb]},"PT400");
@@ -144,6 +166,7 @@ export async function driverPermissionTests(status,sql) {
   r.revision=p.p_revision+1;const fresh=await propose(r);
   assert.equal((await state(r)).proposal_id,fresh.p_id,"Current proposal selected by frozen revision");
   assert.equal((await state(r)).consent_count,0,"New proposal never reuses consent");
+  const pendingInbox=await ok(d.db,"driver_inbox",{p_pending_only:true});assert.equal(pendingInbox[0].proposal_id,fresh.p_id,"Pending request is not hidden by historical rows");
   await ok(a.db,"cancel_driver_proposal",{...fresh,p_family_id:fa});
   await denied(d.db,"accept_driver_proposal",{...fresh,p_available_seats:4,p_restraints:true},"PT409");
 
@@ -153,6 +176,7 @@ export async function driverPermissionTests(status,sql) {
   assert.equal((await state(self)).coverage,"awaiting_confirmation");
   await ok(a.db,"accept_driver_proposal",{...ps,p_available_seats:4,p_restraints:true});
   assert.equal((await state(self)).coverage,"confirmed");
+  const selfInbox=await ok(a.db,"driver_inbox",{});assert.equal(selfInbox.length,1);assert.equal(selfInbox[0].ride_id,self.ride);
   await ok(a.db,"withdraw_driver",ps);await ok(a.db,"withdraw_driver",ps);
   assert.equal((await state(self)).coverage,"needs_driver");
   await denied(a.db,"accept_driver_proposal",{...ps,p_available_seats:4,p_restraints:true},"PT409");
@@ -288,7 +312,7 @@ export async function driverPermissionTests(status,sql) {
   await denied(d.db,"accept_driver_proposal",{...p4,p_available_seats:4,p_restraints:true},"PT404");
   assert.deepEqual((await d.db.from("ride_locations").select("*").eq("ride_id",m4.ride)).data,[]);
   // Explicit action grants, no anonymous commands or exposed finalizer/private schema.
-  const commands={save_vehicle:carArgs,propose_driver:args,accept_driver_proposal:{...p,p_available_seats:4,p_restraints:true},consent_for_own_children:last,decline_driver_proposal:p,cancel_driver_proposal:{...p,p_family_id:fa},withdraw_driver:p,revoke_own_consent:last,driver_options:{p_ride_id:r.ride},driver_status:{p_ride_id:r.ride}};
+  const commands={save_vehicle:carArgs,propose_driver:args,accept_driver_proposal:{...p,p_available_seats:4,p_restraints:true},consent_for_own_children:last,decline_driver_proposal:p,cancel_driver_proposal:{...p,p_family_id:fa},withdraw_driver:p,revoke_own_consent:last,driver_options:{p_ride_id:r.ride},driver_status:{p_ride_id:r.ride},driver_statuses:{p_ride_ids:[r.ride]},driver_inbox:{}};
   for(const [name,params] of Object.entries(commands)) await denied(anon,name,params);
   await denied(a.db,"finalize_driver",{p_id:p.p_id});
   assert.ok((await a.db.schema("pool_private").rpc("finalize_driver",{p_id:p.p_id})).error);

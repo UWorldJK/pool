@@ -83,8 +83,8 @@ identical duplicate creates return the existing ID and cannot revive closure.
 Duplicate replies cannot create extra consents or assignments.
 
 Commands lock all affected family roots in UUID order, then circle and ride,
-sharing R3's membership-removal order. Finalization serializes on the driver
-profile and vehicle and repeats current driver/family/guardian membership, fixed
+sharing R3's membership-removal order. Nomination locks nominator/driver profiles in UUID order before the vehicle,
+including self nomination. Finalization serializes on the driver profile and vehicle and repeats current driver/family/guardian membership, fixed
 roster/revision, all child consents, vehicle owner/version/seats, explicit restraint
 attestation and database-time deadline checks after waiting. Partial unique
 indexes allow one pending proposal and one active assignment per ride. PostgreSQL
@@ -101,6 +101,13 @@ Subsequent reads use current memberships. No replacement is selected. Expired
 pending proposals have an effective needs-driver status using database time on
 reads; every reply checks the deadline, and a new nomination closes expired
 history. Correctness requires no background scheduler.
+
+Schedule and family attention coverage request statuses for the exact displayed
+ride IDs (at most the Data API's 1,000-row offer limit), so unrelated history cannot
+hide a confirmed assignment. The driving inbox filters the driver's role and
+optional pending state in the database before keyset pagination by pickup instant
+and ride UUID. Pages contain 25 entries with a next-page cursor; pending attention
+shows 25 requests and links to the paginated pending inbox for additional requests.
 
 ## Validation and delivery status
 
