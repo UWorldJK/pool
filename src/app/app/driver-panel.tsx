@@ -1,11 +1,15 @@
+import { createReadOnlyClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { rideTime } from "@/lib/rides";
 import { coverageLabel, type DriverStatus } from "@/lib/drivers";
 import { DriverForm, Confirmation } from "./driver-form";
-export function DriverPanel({ status }: { status: DriverStatus }) {
+export async function DriverPanel({ status }: { status: DriverStatus }) {
+  const client = await createReadOnlyClient();
+  const trip = await client.from("ride_trips").select("completed_at").eq("ride_id",status.ride_id).maybeSingle();
+  if (trip.error) throw new Error("Trip status could not be loaded");
   const fields = { proposal_id:status.proposal_id,revision:String(status.ride_revision) };
   const live = status.coverage === "awaiting_confirmation";
-  return <section><h2>Driver and assignment</h2><p><strong>{status.cancelled_at ? "Cancelled ride" : coverageLabel(status.coverage)}</strong> · Proposal {status.proposal_status}</p>
+  return <section><h2>Driver and assignment</h2><p><strong>{status.cancelled_at ? "Cancelled ride" : trip.data?.completed_at ? "Ride completed" : coverageLabel(status.coverage)}</strong> · Proposal {status.proposal_status}</p>
     <p>{status.driver_name} · {status.vehicle_label} · Vehicle version {status.vehicle_version} · {status.passenger_seats} registered passenger seats</p>
     <p>{status.rider_count} riders · {status.booster_count} booster seats · {status.child_seat_count} child seats</p>
     <p>Driver acceptance: {status.accepted_at ? "Accepted" : "Required"} · Child consents: {status.consent_count} of {status.rider_count}</p>
@@ -23,7 +27,7 @@ export function DriverPanel({ status }: { status: DriverStatus }) {
       </DriverForm>
       <DriverForm command="declineDriverProposal" fields={fields} label="Decline driving" />
     </>}
-    {status.is_driver && (status.coverage === "confirmed" || (live && status.accepted_at)) && <DriverForm command="withdrawDriver" fields={fields} label="Withdraw as driver"><Confirmation>I withdraw and leave this ride needing a driver.</Confirmation></DriverForm>}
+    {!trip.data && status.is_driver && (status.coverage === "confirmed" || (live && status.accepted_at)) && <DriverForm command="withdrawDriver" fields={fields} label="Withdraw as driver"><Confirmation>I withdraw and leave this ride needing a driver.</Confirmation></DriverForm>}
     <Link href={`/app/rides/${status.ride_id}`}>Open ride details</Link>
   </section>;
 }

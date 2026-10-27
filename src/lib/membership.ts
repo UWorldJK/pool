@@ -12,6 +12,7 @@ export function membershipError(code: string) {
     case "PT404": return "This invitation or membership is unavailable to this account. Check the link and signed-in email.";
     case "PT410": return "This invitation has expired, was revoked, or has already been used. Ask for a new link.";
     case "PT409": return "This change conflicts with the current membership. The last owner and coordinating family must remain. Reload to see the latest state.";
+    case "PT423": return "This membership is responsible for an active trip. Finish every child’s handoff before ordinary removal.";
     case "PT400": return "Check the names, email address, invitation type and selected family.";
     default: return "We could not save this change. Reload and try again.";
   }
