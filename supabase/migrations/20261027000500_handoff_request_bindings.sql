@@ -84,4 +84,3 @@ begin
   end if;
   return p_kind;
 end $$;
-
