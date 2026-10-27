@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import test from "node:test";
 import { releaseContext, validateSource } from "./delivery-guard.mjs";
-import { auditProvider, validateSettings, verifyDeployment } from "./deliver.mjs";
+import { auditProvider, deploymentArguments, validateSettings, verifyDeployment } from "./deliver.mjs";
 
 const sha = "a".repeat(40);
 const repo = { full_name: "owner/pool" };
@@ -117,8 +117,13 @@ function settings(target = "preview") {
 }
 test("settings prevent missing settings, local URLs, target swaps and privileged keys", () => {
   for (const target of ["preview", "production"]) {
-    assert.equal(Object.keys(validateSettings(target, settings(target))).length, 3);
+    const publicSettings = validateSettings(target, settings(target));
+    assert.equal(Object.keys(publicSettings).length, 3);
+    const args = deploymentArguments(target, sha, "prj_fixture", publicSettings);
+    assert.ok(args.includes(target === "production" ? "--skip-domain" : "--environment"));
+    assert.ok(!args.join(" ").includes(settings(target).VERCEL_TOKEN));
   }
+  assert.throws(() => deploymentArguments("preview", sha, "prj_fixture", { VERCEL_TOKEN: "test-only-token" }));
   for (const override of [
     { DELIVERY_TARGET: "production" }, { TEST_SUPABASE_URL: settings().PRODUCTION_SUPABASE_URL },
     { SUPABASE_URL: "http://localhost:54321" }, { SUPABASE_URL: settings().PRODUCTION_SUPABASE_URL },
@@ -195,6 +200,8 @@ test("workflow wiring keeps untrusted checks secretless and uses one non-cancell
   const ci = load(readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8"));
   const deliveryText = readFileSync(new URL("../.github/workflows/delivery.yml", import.meta.url), "utf8");
   const delivery = load(deliveryText);
+  const releaseText = readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8");
+  const release = load(releaseText);
   assert.deepEqual(Object.keys(ci.on), ["pull_request", "push"]);
   assert.ok(!JSON.stringify(ci).includes("secrets."));
   assert.equal(ci.jobs.checks.steps.find((step) => step.uses?.startsWith("actions/setup-node")).with["node-version-file"], ".nvmrc");
@@ -203,17 +210,25 @@ test("workflow wiring keeps untrusted checks secretless and uses one non-cancell
     assert.ok(ci.jobs.checks.steps.some((step) => step.run === command));
   }
   assert.deepEqual(delivery.on, { workflow_run: { workflows: ["CI"], types: ["completed"] } });
-  assert.equal(delivery.concurrency["cancel-in-progress"], false);
-  assert.equal(delivery.jobs.test.environment, "preview");
-  assert.equal(delivery.jobs.production.environment, "production");
-  assert.deepEqual(delivery.jobs.production.needs, ["gate", "test"]);
-  assert.match(delivery.jobs.production.if, /target == 'production'/);
+  // Invalid CI completions never enter the lock or replace a pending main run.
+  assert.equal(delivery.concurrency, undefined);
+  assert.equal(delivery.jobs.release.needs, "gate");
+  assert.equal(delivery.jobs.release.uses, "./.github/workflows/release.yml");
+  assert.equal(release.concurrency["cancel-in-progress"], false);
+  assert.equal(release.concurrency.queue, "max");
+  assert.deepEqual(Object.keys(release.on), ["workflow_call"]);
+  assert.equal(release.jobs.test.environment, "preview");
+  assert.equal(release.jobs.production.environment, "production");
+  assert.equal(release.jobs.production.needs, "test");
+  assert.match(release.jobs.production.if, /target == 'production'/);
+  assert.match(release.jobs.test.if, /workflow_run/);
   assert.match(delivery.jobs.gate.if, /DELIVERY_ENABLED/);
-  assert.ok(!/pull_request_target|download-artifact|cache@/.test(deliveryText));
-  for (const job of Object.values(delivery.jobs)) {
+  assert.ok(!/pull_request_target|download-artifact|cache@/.test(deliveryText + releaseText));
+  for (const job of [delivery.jobs.gate, ...Object.values(release.jobs)]) {
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout"));
     assert.equal(checkout.with.ref, "${{ github.workflow_sha }}");
     assert.equal(checkout.with["persist-credentials"], false);
     for (const step of job.steps.filter((step) => step.uses)) assert.match(step.uses, /@[a-f0-9]{40}$/);
   }
+  assert.ok(ci.jobs.checks.steps.some((step) => step.run?.includes("scripts/verify-vercel-cli.mjs")));
 });

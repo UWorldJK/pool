@@ -100,6 +100,20 @@ export async function verifyDeployment(url, target, sha, env, request = fetch) {
   "Deployment identity, target, revision or readiness does not match the release");
 }
 
+export function deploymentArguments(target, sha, projectId, settings) {
+  requireThat(["preview", "production"].includes(target), "Invalid CLI deployment target");
+  const args = ["deploy", "--yes", "--project", projectId, "--meta", `releaseSha=${sha}`];
+  if (target === "production") args.push("--prod", "--skip-domain");
+  else args.push("--environment", "preview");
+  for (const [key, value] of Object.entries(settings)) {
+    requireThat(["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "PORT"].includes(key),
+      "Only public settings may enter the CLI deployment environment");
+    args.push("--env", `${key}=${value}`);
+    if (key !== "PORT") args.push("--build-env", `${key}=${value}`);
+  }
+  return args;
+}
+
 async function deliver(target) {
   const env = process.env;
   const settings = validateSettings(target, env);
@@ -135,13 +149,7 @@ async function deliver(target) {
       }
     }
     await fresh();
-    const args = ["deploy", "--yes", "--project", env.VERCEL_PROJECT_ID, "--meta", `releaseSha=${env.RELEASE_SHA}`];
-    if (target === "production") args.push("--prod", "--skip-domain");
-    else args.push("--environment", "preview");
-    for (const [key, value] of Object.entries(settings)) {
-      args.push("--env", `${key}=${value}`);
-      if (key !== "PORT") args.push("--build-env", `${key}=${value}`);
-    }
+    const args = deploymentArguments(target, env.RELEASE_SHA, env.VERCEL_PROJECT_ID, settings);
     const deploymentUrl = vercel(args);
     await verifyDeployment(deploymentUrl, target, env.RELEASE_SHA, env);
     await smoke(deploymentUrl, { bypass: env.VERCEL_AUTOMATION_BYPASS_SECRET || "" });

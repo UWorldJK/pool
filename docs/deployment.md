@@ -19,6 +19,9 @@ variable `DELIVERY_ENABLED` is exactly `true`. There is no manual target selecto
 privileged workflow. Its scripts come from the immutable default-branch workflow
 revision. Candidate code is archived without executing its scripts locally and
 uploaded for Vercel's remote container build using pinned CLI 65.4.0.
+Secretless CI and release setup verify this installed CLI's actual command
+definitions and invoke generated preview/production arguments with `--help`.
+Version 65.4.0 uses `--environment`; `--target` is its deprecated alias.
 
 The [Vercel container path](https://vercel.com/docs/functions/runtimes/container)
 stays `Dockerfile.vercel`, the Container preset and Vercel's own registry. There is
@@ -145,10 +148,16 @@ domain ownership before smoke requests receive a protection bypass header.
 Supabase Auth settings must accept the selected public key in preflight; this
 does not certify SQL/RLS or database readiness.
 
-One non-cancelling workflow concurrency group covers all test and production
-steps, including environment waits, remote builds and promotion. GitHub's queue
-is not FIFO and can replace pending runs; every admitted run re-reads current
-GitHub state before upload and after remote smoke, immediately before production
+The secretless admission workflow has no shared concurrency group: rejected or
+failed CI events cannot evict an eligible queued release. Only a successful gate
+calls `release.yml` at the same trusted revision. One non-cancelling workflow
+concurrency group there covers all test and production steps, including
+environment waits, remote builds and promotion. GitHub's documented
+[`queue: max`](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency#example-queueing-multiple-pending-runs) retains up to 100
+admitted pending releases instead of replacing pending main with a later preview;
+when full, new entries are rejected. Dispatch order still does not establish
+revision freshness. Every admitted run re-reads current GitHub state before
+upload and after remote smoke, immediately before production
 promotion. An older queued/retried main revision cannot overwrite a newer release.
 A newer commit arriving during a remote build leaves the stale deployment
 unpromoted. Fresh preview URLs are immutable; no shared test alias is promoted.
@@ -179,8 +188,8 @@ Local verification on October 26, 2026:
 | Fresh `npm ci` and `npm run check` in Node 24.22.1 Linux container | Passed lint, type checking, all 36 tests (including the original 12) and production build; `NODE_ENV=production` during check. No prototypes or real environment file in the image. |
 | Disposable Compose validation | Passed without reading/replacing the developer's `.env.local`. |
 | Final `linux/amd64` production image | Homepage, all linked CSS, robots and health smoke passed; no mounts, unprivileged user, no hosted backend. |
-| `actionlint` 1.7.9 and shell syntax validation | Both workflow files and smoke/Compose helpers passed. |
-| Vercel CLI 65.4.0 | Deployment/promotion flags inspected; hosted dry-run could not proceed without credentials. No deployment attempted. |
+| Workflow and shell validation | `actionlint` 1.7.12 passed the three workflows with only its unsupported `queue` diagnostic excluded; guard tests verify the documented `queue: max` value and admission before the lock. Shell syntax passed. Hosted lock execution remains pending. |
+| Vercel CLI 65.4.0 | Actual installed command definitions and generated preview/production help invocations passed without credentials; hosted dry-run could not proceed without credentials. No deployment attempted. |
 | GitHub Actions CI | [Run 2](https://github.com/UWorldJK/pool/actions/runs/40449288052) passed checks, Compose and production-container smoke on `e33500d`; latest-head results remain visible on the PR. |
 
 Local automated evidence and hosted evidence are separate. The PR records the
