@@ -14,6 +14,7 @@ import { createServer } from "node:net";
 import assert from "node:assert/strict";
 import { permissionTests, baselineIdentity } from "./membership-permissions.mjs";
 import { ridePermissionTests, rideUpgradeIdentity } from "./ride-permissions.mjs";
+import { driverPermissionTests, driverUpgradeIdentity } from "./driver-permissions.mjs";
 import { migrationDatabaseTests } from "./migration-database-tests.mjs";
 
 // No external URL/key options: this command can only use the fresh CLI project
@@ -152,9 +153,13 @@ try {
   execFileSync(cli, ["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
   await baseline();
   const verifyR3 = await rideUpgradeIdentity(status);
+  copyFileSync("supabase/migrations/20261027000200_ride_planning.sql", join(directory,"supabase/migrations/20261027000200_ride_planning.sql"));
+  execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  await verifyR3();
+  const verifyR4 = await driverUpgradeIdentity(status);
   cpSync("supabase/migrations", join(directory, "supabase/migrations"), { recursive: true });
   execFileSync(cli, ["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
-  await verifyR3();
+  await verifyR4();
   function generatedTypes() {
     const database = new URL(status.DB_URL);
     assert.equal(database.hostname, "127.0.0.1");
@@ -171,7 +176,7 @@ try {
   const focusedBrowser = process.argv.includes("--membership-only");
   if (!focusedBrowser) execFileSync(cli, ["db", "reset", "--local", "--no-seed", ...args], { stdio: ["ignore", "ignore", "inherit"] });
   const cleanTypes = focusedBrowser ? upgradedTypes : generatedTypes();
-  assert.equal(cleanTypes, upgradedTypes, "Clean and R2/R3 upgrade schemas differ");
+  assert.equal(cleanTypes, upgradedTypes, "Clean and R2/R3/R4 upgrade schemas differ");
   if (process.argv.includes("--write-types")) writeFileSync("src/lib/supabase/database.types.ts", cleanTypes);
   else assert.equal(cleanTypes, readFileSync("src/lib/supabase/database.types.ts", "utf8"), "Generated database types drifted; run npm run db:types");
   let backendReady = false;
@@ -191,8 +196,9 @@ try {
   }).trim();
   await permissionTests(status, sql);
   await ridePermissionTests(status, sql);
+  await driverPermissionTests(status,sql);
   await migrationDatabaseTests(status, sql);
-  console.log(`${focusedBrowser ? "R2 upgrade" : "Clean migrations and R2/R3 upgrade"}, generated types and real-session permissions passed.`);
+  console.log(`${focusedBrowser ? "R2 upgrade" : "Clean migrations and R2/R3/R4 upgrade"}, generated types and real-session permissions passed.`);
   if (process.argv.includes("--database-only") || process.argv.includes("--write-types")) {
     cleanup();
     process.exit(process.exitCode || 0);
@@ -247,11 +253,11 @@ try {
   if (!ready) throw new Error("Auth test app did not become ready");
   await run(
     process.execPath,
-    ["node_modules/@playwright/test/cli.js", "test", ...(process.argv.includes("--membership-only") ? ["tests/auth/membership.spec.mjs"] : process.argv.includes("--rides-only") ? ["tests/auth/rides.spec.mjs"] : [])],
+    ["node_modules/@playwright/test/cli.js", "test", ...(process.argv.includes("--membership-only") ? ["tests/auth/membership.spec.mjs"] : process.argv.includes("--rides-only") ? ["tests/auth/rides.spec.mjs"] : process.argv.includes("--drivers-only") ? ["tests/auth/drivers.spec.mjs"] : [])],
     env,
   );
 } catch (error) {
-  console.error(error.message);
+  console.error(error.code === "ERR_ASSERTION" ? error.stack : error.message);
   process.exitCode = 1;
 } finally {
   cleanup();

@@ -180,6 +180,6 @@ export async function permissionTests(status, sql) {
   assert.deepEqual((await other.client.from("circles").select("*")).data, []);
   await denied(other.client, "circle_roster", { p_circle_id: circle }, "PT404");
   await denied(other.client, "accept_invitation", acceptArgs(circleInvite, "circle", { p_family_id: otherFamily }), "PT410");
-  assert.equal(sql("select count(*) from pg_tables where schemaname = 'public' and tablename ~ 'driver|approval';"), "0");
+  assert.equal(sql("select count(*) from pg_tables where schemaname = 'public' and tablename ~ 'ride_events|replacement';"), "0");
   console.log("Permission assertions passed: public-key sessions, Data API/RPC denials, scopes, races, expiry, revocation, removal and last owner.");
 }

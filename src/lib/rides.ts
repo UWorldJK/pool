@@ -6,6 +6,7 @@ export function rideError(code: string) {
     case "PT401": return "Sign in with a confirmed email and try again.";
     case "PT404": return "This ride, family or child is unavailable to this account.";
     case "PT409": case "23505": return "This plan changed or was cancelled. Reload to see its current revision before trying again.";
+    case "PT423": return "Resolve the driver proposal or assignment before changing riders. Changed plans require fresh consent.";
     case "PT400": case "23514": case "23503": return "Check the route, dates, timezone, family and selected children. Select only your own children and circle families.";
     default: return "We could not save this change. Your request may have reached the server; reload before retrying.";
   }

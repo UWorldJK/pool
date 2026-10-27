@@ -86,6 +86,9 @@ test("R4 real multi-session planning, private offers, endpoint denials, enrollme
     await child(other.page, "Invited child");
     // Forge an existing UI action to target a child belonging to another family.
     const foreignForm = other.page.locator("form").filter({ has: other.page.getByRole("button", { name: "Update child", exact: true }) });
+    // Wait for hydration before altering a controlled hidden field; otherwise
+    // React can restore its original value and turn this denial into an own edit.
+    await expect(foreignForm.getByRole("button", { name: "Update child", exact: true })).toBeEnabled();
     await foreignForm.locator('input[name="child_id"]').evaluate((input, id) => { input.value = id; }, childId);
     await foreignForm.getByRole("button", { name: "Update child", exact: true }).click();
     await expect(foreignForm.locator('p[role="alert"]')).toContainText("unavailable");

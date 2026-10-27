@@ -20,7 +20,7 @@ export default async function ApplicationLayout({
         <p>
           Signed in as <strong>{user.email}</strong>
         </p>
-        <nav aria-label="Application"><Link href="/app">Families and circles</Link><Link href="/app/invitations">Invitations</Link><Link href="/app/children">Child setup</Link><Link href="/app/rides/new">Plan a ride</Link><Link href="/app/schedule">Weekly schedule</Link><Link href="/app/attention">Needs attention</Link></nav>
+        <nav aria-label="Application"><Link href="/app">Families and circles</Link><Link href="/app/invitations">Invitations</Link><Link href="/app/children">Child setup</Link><Link href="/app/rides/new">Plan a ride</Link><Link href="/app/schedule">Weekly schedule</Link><Link href="/app/vehicles">Your vehicles</Link><Link href="/app/driving">Your driving</Link><Link href="/app/attention">Needs attention</Link></nav>
         {children}
         <AuthForm mode="sign-out" />
       </section>
