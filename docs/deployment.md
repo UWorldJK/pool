@@ -35,6 +35,10 @@ No Vercel project link or deployment credentials were available in the R1 checko
 Provider configuration and hosted execution are **not verified**. Do not enable
 delivery until an owner has completed the following setup. No accounts, projects,
 subscriptions or paid features were provisioned by this change.
+GitHub reports a pre-existing **Supabase Preview** integration, skipped on this
+PR; it does not establish the test/production mapping. Audit its automatic branch
+creation/schema synchronization and disable competing delivery before R3 makes
+Actions responsible for migrations. Do not create a database per PR for this plan.
 
 1. Protect `main`: require PRs, at least one review, dismissal of stale approvals,
    **checks** from the **CI** workflow, and branches up to date before merging.
@@ -177,6 +181,7 @@ Local verification on October 26, 2026:
 | Final `linux/amd64` production image | Homepage, all linked CSS, robots and health smoke passed; no mounts, unprivileged user, no hosted backend. |
 | `actionlint` 1.7.9 and shell syntax validation | Both workflow files and smoke/Compose helpers passed. |
 | Vercel CLI 65.4.0 | Deployment/promotion flags inspected; hosted dry-run could not proceed without credentials. No deployment attempted. |
+| GitHub Actions CI | [Run 2](https://github.com/UWorldJK/pool/actions/runs/40449288052) passed checks, Compose and production-container smoke on `e33500d`; latest-head results remain visible on the PR. |
 
 Local automated evidence and hosted evidence are separate. The PR records the
 exact tested commit and completed CI results. Guard tests exercise failed/skipped
