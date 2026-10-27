@@ -1,0 +1,112 @@
+name: Delivery
+
+# This workflow and its helpers run from the default branch, never a PR checkout.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+# One owner/lock for shared test and production, including remote builds/promotion.
+# Do not cancel an in-flight release (R3 will add migrations inside this lock).
+concurrency:
+  group: pool-delivery
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    if: vars.DELIVERY_ENABLED == 'true' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      target: ${{ steps.gate.outputs.target }}
+      sha: ${{ steps.gate.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - id: gate
+        run: node scripts/delivery-guard.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  test:
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: preview
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install isolated delivery tool (no deployment credentials)
+        run: npm install --prefix "$RUNNER_TEMP/vercel-cli" --ignore-scripts --no-audit --no-fund vercel@65.4.0
+      - name: Verify and deliver to test
+        run: node scripts/deliver.mjs preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ needs.gate.outputs.sha }}
+          DELIVERY_TARGET: ${{ vars.DELIVERY_TARGET }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          TEST_SUPABASE_URL: ${{ vars.TEST_SUPABASE_URL }}
+          PRODUCTION_SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          TEST_VERCEL_PROJECT_ID: ${{ vars.TEST_VERCEL_PROJECT_ID }}
+          TEST_VERCEL_ORG_ID: ${{ vars.TEST_VERCEL_ORG_ID }}
+          PRODUCTION_VERCEL_PROJECT_ID: ${{ vars.PRODUCTION_VERCEL_PROJECT_ID }}
+          PRODUCTION_VERCEL_ORG_ID: ${{ vars.PRODUCTION_VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+
+  production:
+    needs: [gate, test]
+    if: needs.gate.outputs.target == 'production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install isolated delivery tool (no deployment credentials)
+        run: npm install --prefix "$RUNNER_TEMP/vercel-cli" --ignore-scripts --no-audit --no-fund vercel@65.4.0
+      - name: Verify, stage, smoke and promote production
+        run: node scripts/deliver.mjs production
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ needs.gate.outputs.sha }}
+          DELIVERY_TARGET: ${{ vars.DELIVERY_TARGET }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          TEST_SUPABASE_URL: ${{ vars.TEST_SUPABASE_URL }}
+          PRODUCTION_SUPABASE_URL: ${{ vars.PRODUCTION_SUPABASE_URL }}
+          TEST_VERCEL_PROJECT_ID: ${{ vars.TEST_VERCEL_PROJECT_ID }}
+          TEST_VERCEL_ORG_ID: ${{ vars.TEST_VERCEL_ORG_ID }}
+          PRODUCTION_VERCEL_PROJECT_ID: ${{ vars.PRODUCTION_VERCEL_PROJECT_ID }}
+          PRODUCTION_VERCEL_ORG_ID: ${{ vars.PRODUCTION_VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
