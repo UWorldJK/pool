@@ -26,3 +26,15 @@ test("weekly range uses local Mondays with DST and year/date boundaries", () => 
   assert.equal(dateInZone(new Date("2027-01-01T01:00:00Z"), "America/Denver"), "2026-12-31");
   assert.equal(dateInZone(new Date("2026-12-31T11:00:00Z"), "Pacific/Kiritimati"), "2027-01-01");
 });
+
+test("calendar weeks include dates with skipped Monday midnight in both adjacent weeks", () => {
+  const after = weekRange("2021-03-23", "Asia/Tehran");
+  const before = weekRange("2021-03-16", "Asia/Tehran");
+  assert.equal(after.from, "2021-03-21T20:30:00.000Z");
+  assert.equal(before.until, after.from);
+  assert.equal(dateInZone(new Date(Date.parse(after.from) - 1000), "Asia/Tehran"), "2021-03-21");
+  assert.equal(dateInZone(new Date(after.from), "Asia/Tehran"), "2021-03-22");
+  assert.equal(after.until, "2021-03-28T19:30:00.000Z");
+  // Calendar range resolution must never relax validation of entered ride times.
+  for (const occurrence of ["reject", "earlier", "later"]) assert.throws(() => zonedInstant("2021-03-22T00:00", "Asia/Tehran", occurrence), /does not exist/);
+});

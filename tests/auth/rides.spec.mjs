@@ -142,6 +142,11 @@ test("R4 real multi-session planning, private offers, endpoint denials, enrollme
     await expect(creator.page.getByText("Return · Unassigned", { exact: false })).toBeVisible();
     await creator.page.goto("/app/schedule?date=2028-06-01&timezone=UTC");
     await expect(creator.page.getByText("No rides in this week.", { exact: false })).toBeVisible();
+    for (const date of ["2021-03-16", "2021-03-23"]) {
+      await creator.page.goto(`/app/schedule?date=${date}&timezone=Asia%2FTehran`);
+      await expect(creator.page.getByText("No rides in this week.", { exact: false })).toBeVisible();
+      await expect(creator.page.locator('p[role="alert"]')).toHaveCount(0);
+    }
     await creator.page.goto("/app/attention"); await expect(creator.page.getByRole("heading", { name: "Participating rides needing a driver" })).toBeVisible();
     await creator.page.goto(rideUrl);
     // Use keyboard and a narrow screen for the final irreversible-in-app operation.

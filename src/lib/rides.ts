@@ -57,8 +57,32 @@ export function dateInZone(instant: Date, zone: string) {
 export function addDays(date: string, count: number) {
   const day = localDate(date); day.setUTCDate(day.getUTCDate() + count); return day.toISOString().slice(0, 10);
 }
+// Calendar boundaries differ from entered ride times: a date may begin after
+// midnight (or be skipped entirely). Find the first instant on/after that date.
+function calendarDayStart(date: string, zone: string) {
+  const nominal = localDate(date).getTime();
+  validTimezone(zone);
+  try { return zonedInstant(`${date}T00:00`, zone, "earlier"); }
+  catch {
+    // Midnight is in a gap. IANA transitions have second precision; searching
+    // instants rather than local minutes also preserves sub-minute offsets.
+    const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" });
+    const dayAt = (seconds: number) => {
+      const parts = Object.fromEntries(formatter.formatToParts(seconds * 1000).map((part) => [part.type, part.value]));
+      return `${parts.year}-${parts.month}-${parts.day}`;
+    };
+    let before = nominal / 1000 - 48 * 3600;
+    let after = nominal / 1000 + 48 * 3600;
+    while (after - before > 1) {
+      const middle = Math.floor((before + after) / 2);
+      if (dayAt(middle) < date) before = middle;
+      else after = middle;
+    }
+    return new Date(after * 1000).toISOString();
+  }
+}
 export function weekRange(date: string, zone: string) {
   const day = localDate(date);
   const monday = addDays(date, -((day.getUTCDay() + 6) % 7));
-  return { monday, next: addDays(monday, 7), from: zonedInstant(`${monday}T00:00`, zone, "earlier"), until: zonedInstant(`${addDays(monday, 7)}T00:00`, zone, "earlier") };
+  return { monday, next: addDays(monday, 7), from: calendarDayStart(monday, zone), until: calendarDayStart(addDays(monday, 7), zone) };
 }

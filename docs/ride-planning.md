@@ -78,7 +78,9 @@ endpoint. The server rejects invalid calendar dates, nonexistent spring times,
 ambiguous repeated hours without an explicit choice, and nonpositive intervals.
 Direct RPC callers provide unambiguous instants; the database rejects nonfinite or
 reversed intervals and unknown/abbreviated timezone names. Week boundaries use the
-chosen schedule timezone, including 167/169-hour DST weeks. Reads use half-open
+chosen schedule timezone, including 167/169-hour DST weeks. If a boundary date
+begins after a skipped midnight, its first valid instant starts the range; entered
+ride times in gaps still fail validation. Reads use half-open
 overlap (`start < until`, `end > from`) rather than the execution host's timezone.
 
 `20261027000200_ride_planning.sql` is additive after the unchanged R3 migration.
