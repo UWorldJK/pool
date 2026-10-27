@@ -175,6 +175,9 @@ begin
   if exists(select 1 from public.ride_families where ride_id=p_ride_id and
     (status='invited' or (status='joined' and not pool_private.ride_family_active(circle_id,family_id))))
     or not exists(select 1 from public.ride_riders where ride_id=p_ride_id) then raise exception 'roster_not_ready' using errcode='PT422'; end if;
+  -- Proposal FKs also reference the nominating profile. Take both profile
+  -- locks before the vehicle, matching finalization even for self nomination.
+  perform 1 from public.profiles where id in (v_actor,p_driver_id) order by id for update;
   select * into v_vehicle from public.vehicles where id=p_vehicle_id for update;
   if not found or v_vehicle.driver_id<>p_driver_id or v_vehicle.retired_at is not null then raise exception 'unavailable' using errcode='PT404'; end if;
   if v_vehicle.version<>p_vehicle_version then raise exception 'stale_vehicle' using errcode='PT409'; end if;

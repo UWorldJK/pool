@@ -214,6 +214,34 @@ export async function driverPermissionTests(status,sql) {
   assert.equal((await state(win,winningDb)).coverage,"needs_driver");
   assert.equal(await ok(losingDb,"consent_for_own_children",{...ploss,p_family_id:losingFamily,p_child_ids:[losingChild]}),"confirmed","Cancellation releases reservations atomically");
   await ok(d.db,"withdraw_driver",ploss);
+  // Nomination and finalization use the same profile-before-vehicle order,
+  // including the nominator's FK when the driver self-nominates across circles.
+  const lockRide=await make({two:false}),lockProposal=await propose(lockRide);
+  await ok(d.db,"accept_driver_proposal",{...lockProposal,p_available_seats:4,p_restraints:true});
+  const driverChild=await ok(d.db,"save_own_child",childArgs(driverOtherFamily,"Driver's own child"));
+  const selfRide={ride:await ok(d.db,"create_ride",rideArgs(driverOtherFamily,otherCircle,[driverChild])),revision:1};
+  const selfNomination=nomination(selfRide,{p_family_id:driverOtherFamily,p_driver_family_id:driverOtherFamily});
+  const blocker=new pg.Client({connectionString:status.DB_URL});await blocker.connect();
+  async function waitForWaiters(count) {
+    for(let attempt=0;attempt<100;attempt++) {
+      await blocker.query("select pg_stat_clear_snapshot()");
+      const result=await blocker.query("select count(*)::integer as count from pg_stat_activity where wait_event_type='Lock' and (query like '%propose_driver%' or query like '%consent_for_own_children%')");
+      if(result.rows[0].count>=count) return;
+      await new Promise(resolve=>setTimeout(resolve,25));
+    }
+    assert.fail("Expected concurrent command to reach its database lock");
+  }
+  try {
+    await blocker.query("begin");await blocker.query("select id from public.vehicles where id=$1 for update",[car]);
+    const nominating=d.db.rpc("propose_driver",selfNomination).then(r=>r);
+    await waitForWaiters(1);
+    const confirming=a.db.rpc("consent_for_own_children",{...lockProposal,p_family_id:fa,p_child_ids:[ca]}).then(r=>r);
+    await waitForWaiters(2);await blocker.query("commit");
+    const operations=await Promise.all([nominating,confirming]);operations.forEach(r=>assert.ifError(r.error));
+    assert.equal(operations[1].data,"confirmed");
+    await ok(d.db,"cancel_driver_proposal",{p_id:operations[0].data,p_revision:2,p_family_id:driverOtherFamily});
+  } finally {await blocker.end();}
+  await ok(d.db,"withdraw_driver",lockProposal);
   // Half-open intervals permit adjacent rides using the same vehicle.
   const adjacent=[];
   for(const [start,end] of [["2027-11-07T10:00Z","2027-11-07T11:00Z"],["2027-11-07T11:00Z","2027-11-07T12:00Z"]]) {
