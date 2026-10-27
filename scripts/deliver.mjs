@@ -44,7 +44,7 @@ export async function auditProvider(target, env, request = fetch) {
     });
   }
   if (target === "preview") {
-    const denied = await vercel(`/v9/projects/${env.PRODUCTION_VERCEL_PROJECT_ID}?teamId=${env.PRODUCTION_VERCEL_ORG_ID}`);
+    const denied = await vercel(`/v9/projects/${env.PRODUCTION_VERCEL_PROJECT_ID}?teamId=${encodeURIComponent(env.PRODUCTION_VERCEL_ORG_ID)}`);
     requireThat([403, 404].includes(denied.status), "Preview token must be denied access to the production Vercel scope");
   }
   const query = `?teamId=${encodeURIComponent(env.VERCEL_ORG_ID)}`;
@@ -76,7 +76,7 @@ export async function auditProvider(target, env, request = fetch) {
     const domainsResponse = await vercel(`/v9/projects/${env.VERCEL_PROJECT_ID}/domains${query}&limit=100&production=true`);
     requireThat(domainsResponse.ok, "Cannot verify production domain ownership");
     const { domains } = await domainsResponse.json();
-    requireThat(domains?.some((domain) => domain.name === new URL(env.PRODUCTION_URL).hostname &&
+    requireThat(domains?.some((domain) => domain.verified === true && domain.name === new URL(env.PRODUCTION_URL).hostname &&
       !domain.redirect && !domain.gitBranch && !domain.customEnvironmentId),
     "Production origin must be a non-redirecting production domain of the selected project");
   }

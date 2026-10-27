@@ -159,7 +159,7 @@ tree contains SQL/migration/schema files or changes anything under `supabase/`
 relative to foundation `343f5ab`. This checks the full candidate tree, not just
 the last commit, so retrying or making a later code-only commit cannot bypass it.
 CI stays available for reviewing schema work, but no schema-changing app ships.
-Symlinks, submodules, tracked private/local files, alternate/programmatic Vercel
+Symlinks, submodules, archive-changing `.gitattributes`, tracked private/local files, alternate/programmatic Vercel
 configuration, altered upload ignore rules and altered Vercel delivery
 configuration are also rejected before upload. The CLI explicitly reads the
 trusted JSON configuration, keeping candidate configuration code out of its process.

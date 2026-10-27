@@ -76,6 +76,8 @@ export function validateSource(sha, runGit = git) {
     /(^|\/)\.env/.test(path) && path !== ".env.example"), "Private/local files cannot be delivered");
   requireThat(!paths.some((path) => /^(vercel\.(ts|js|mjs|cjs|toml)|now\.json)$/.test(path)),
     "Alternate/programmatic Vercel config cannot execute in the credential-bearing CLI");
+  requireThat(!paths.some((path) => /(^|\/)\.gitattributes$/.test(path)),
+    "Archive attributes cannot alter or omit the checked source during upload");
   requireThat(runGit("show", `${sha}:vercel.json`) === runGit("show", "HEAD:vercel.json"),
     "Vercel delivery configuration must match the trusted workflow revision");
   requireThat(JSON.parse(runGit("show", `${sha}:vercel.json`)).git?.deploymentEnabled === false,

@@ -96,6 +96,7 @@ test("source allows a schema-free tree but blocks migrations, config drift and C
     { paths: ["supabase/schemas/current.sql"] }, { diff: "supabase/config.toml" },
     { paths: [".env.local"] }, { paths: ["sites/reference.html"] },
     { paths: ["vercel.ts"] }, { paths: ["db/line\nbreak.sql"] },
+    { paths: [".gitattributes"] },
     { mode: "120000" }, { mode: "160000" }, { changedCI: true },
   ]) assert.throws(() => validateSource(sha, sourceGit(options)));
 });
@@ -153,11 +154,12 @@ test("provider audit denies preview access to production, Git duplicates, wrong 
 
 test("production origin must belong to the production project and target", async () => {
   const env = settings("production");
-  for (const wrongDomain of [false, true]) {
+  for (const wrongDomain of [false, "wrong-host", "unverified"]) {
     const request = async (url) => {
       if (url.includes("/domains?")) {
         assert.ok(url.includes("production=true"));
-        return Response.json({ domains: [{ name: wrongDomain ? "other.example" : "pool.example" }] });
+        return Response.json({ domains: [{ verified: wrongDomain !== "unverified",
+          name: wrongDomain === "wrong-host" ? "other.example" : "pool.example" }] });
       }
       if (url.includes("/env?")) return Response.json({ envs: [] });
       if (url.includes("/env/pull/")) return Response.json({ env: {} });
