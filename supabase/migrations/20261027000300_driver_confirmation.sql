@@ -38,7 +38,7 @@ create table public.driver_proposals (
   unique(id, ride_id, ride_revision, driver_id, vehicle_id, vehicle_version)
 );
 create unique index one_pending_driver on public.driver_proposals(ride_id) where status = 'pending';
-create index proposals_ride_history on public.driver_proposals(ride_id,created_at desc,id desc);
+create index proposals_ride_history on public.driver_proposals(ride_id,ride_revision desc);
 create index proposals_driver on public.driver_proposals(driver_id, ride_id);
 create index proposals_vehicle on public.driver_proposals(vehicle_id);
 create table public.ride_driver_consents (
@@ -356,7 +356,7 @@ begin
     where (p_ride_id is null or r.id=p_ride_id) and
       (exists(select 1 from public.ride_families rf where rf.ride_id=r.id and pool_private.participates(r.id,rf.family_id)) or
        (p.driver_id=pool_private.actor() and pool_private.driver_is_member(r.circle_id,p.driver_family_id,p.driver_id)))
-      and p.id=(select newest.id from public.driver_proposals newest where newest.ride_id=r.id order by newest.created_at desc,newest.id desc limit 1)
+      and p.id=(select newest.id from public.driver_proposals newest where newest.ride_id=r.id order by newest.ride_revision desc limit 1)
     order by r.starts_at,r.id;
 end $$;
 

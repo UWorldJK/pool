@@ -138,7 +138,11 @@ export async function driverPermissionTests(status,sql) {
   assert.deepEqual((await d.db.from("ride_locations").select("*").eq("ride_id",r.ride)).data,[]);
   await denied(b.db,"consent_for_own_children",last,"PT409");
   await ok(b.db,"revoke_own_consent",{...p,p_family_id:fb,p_child_ids:[cb]});
+  // Transaction-start timestamps can precede a proposal that committed earlier.
+  // The monotonic ride revision, not wall-clock creation order, selects the latest.
+  sql(`update public.driver_proposals set created_at=clock_timestamp()+interval '1 day' where id='${p.p_id}'`);
   r.revision=p.p_revision+1;const fresh=await propose(r);
+  assert.equal((await state(r)).proposal_id,fresh.p_id,"Current proposal selected by frozen revision");
   assert.equal((await state(r)).consent_count,0,"New proposal never reuses consent");
   await ok(a.db,"cancel_driver_proposal",{...fresh,p_family_id:fa});
   await denied(d.db,"accept_driver_proposal",{...fresh,p_available_seats:4,p_restraints:true},"PT409");
