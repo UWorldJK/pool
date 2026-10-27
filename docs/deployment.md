@@ -10,6 +10,8 @@ The smoke needs no database and checks homepage content, all linked CSS,
 `robots.txt`, and exact uncached `/api/health` JSON. Health means application
 liveness, not Supabase/database readiness. Existing public-key Auth connectivity
 checks remain separate from database/RLS tests.
+CI pins Compose 2.40.3 because the hosted runner's bundled version rejected the
+repository's existing Watch `initial_sync` setting; developer machines need 2.32+.
 
 `Delivery` starts only after CI completes. It is inert unless the repository
 variable `DELIVERY_ENABLED` is exactly `true`. There is no manual target selector,

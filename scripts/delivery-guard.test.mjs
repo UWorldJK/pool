@@ -196,6 +196,7 @@ test("workflow wiring keeps untrusted checks secretless and uses one non-cancell
   assert.deepEqual(Object.keys(ci.on), ["pull_request", "push"]);
   assert.ok(!JSON.stringify(ci).includes("secrets."));
   assert.equal(ci.jobs.checks.steps.find((step) => step.uses?.startsWith("actions/setup-node")).with["node-version-file"], ".nvmrc");
+  assert.equal(ci.jobs.checks.steps.find((step) => step.uses?.startsWith("docker/setup-compose-action")).with.version, "v2.40.3");
   for (const command of ["npm ci", "npm run check", "bash scripts/validate-compose.sh", "bash scripts/container-smoke.sh"]) {
     assert.ok(ci.jobs.checks.steps.some((step) => step.run === command));
   }

@@ -33,5 +33,8 @@ jobs:
           node-version-file: .nvmrc
       - run: npm ci
       - run: npm run check
+      - uses: docker/setup-compose-action@2fe291b7677a45ee1269ec56a42604c143505e7e # v1
+        with:
+          version: v2.40.3
       - run: bash scripts/validate-compose.sh
       - run: bash scripts/container-smoke.sh
