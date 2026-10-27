@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.invalid
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          # Validate the PR head itself: this is the revision delivery uploads.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - run: npm run check
+      - name: Verify pinned deployment CLI without credentials
+        run: |
+          npm install --prefix "$RUNNER_TEMP/vercel-cli" --ignore-scripts --no-audit --no-fund vercel@65.4.0
+          node scripts/verify-vercel-cli.mjs "$RUNNER_TEMP/vercel-cli/node_modules/vercel/dist/index.js"
+      - uses: docker/setup-compose-action@2fe291b7677a45ee1269ec56a42604c143505e7e # v1
+        with:
+          version: v2.40.3
+      - run: bash scripts/validate-compose.sh
+      - run: bash scripts/container-smoke.sh

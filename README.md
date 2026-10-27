@@ -141,12 +141,22 @@ See [Supabase's API key guide](https://supabase.com/docs/guides/getting-started/
 
 ## Verify the foundation
 
+Use `nvm use` (or another version manager) to select the exact `.nvmrc` version.
+
 ```sh
 npm run check
-docker compose config --quiet
+bash scripts/validate-compose.sh
+bash scripts/container-smoke.sh
 npm run supabase:check
 docker compose exec web npm run supabase:check -- --internal
 ```
+
+GitHub's **CI / checks** runs `npm ci`, `npm run check`, disposable Compose
+validation and the final `linux/amd64` container smoke on every PR to `main`
+and every merged `main` revision. These mandatory checks need no hosted account,
+`.env.local`, prototypes or cloud credentials. Guard regressions run with `npm test`.
+When checking inside the development container, explicitly use production mode:
+`docker compose run --rm --no-deps -e NODE_ENV=production web npm run check`.
 
 The connectivity checks use only the public project key, even when a service-role
 or secret key is present in the environment. They call Auth health and Auth
@@ -174,22 +184,17 @@ available during a backend outage and does not claim that the backend is ready.
 The final stage contains the standalone server, public files and generated
 static assets. It runs as the unprivileged `node` user without source mounts.
 The Dockerfile is shared with Vercel; there is no separate production Compose
-stack. Build using the local **publishable** key:
+stack. The automated smoke builds with nonproduction placeholder public settings,
+starts a fresh container on a random loopback port, checks the actual homepage,
+every linked stylesheet, `robots.txt` and the exact health response, and cleans up:
 
 ```sh
-docker build --platform linux/amd64 -f Dockerfile.vercel \
-  --build-arg NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 \
-  --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_LOCAL_PUBLISHABLE_KEY \
-  -t pool:smoke .
-
-docker run --rm --name pool-smoke --network pool-local \
-  --env-file .env.local --env HOSTNAME=0.0.0.0 --env PORT=3000 \
-  --publish 127.0.0.1:3001:3000 pool:smoke
+bash scripts/container-smoke.sh
 ```
 
-Check the homepage at <http://localhost:3001>, its CSS, `/robots.txt` and
-`/api/health`. Stop with `docker stop pool-smoke` from another terminal; Node
-receives the termination signal directly. The `linux/amd64` build matches
+It verifies the image architecture, unprivileged user and absence of mounts.
+There is no Supabase dependency or developer environment injection.
+The `linux/amd64` build matches
 Vercel's runtime; on Apple silicon it can run more slowly through emulation.
 
 Next.js freezes `NEXT_PUBLIC_` values at build time. Rebuild for each environment;
@@ -198,7 +203,12 @@ bundle. Docker builds require both public settings and never need a running
 database. Missing application client settings produce an explicit error when a
 Supabase helper is first used.
 
-See [deployment instructions](docs/deployment.md) for manual Vercel deployment,
-rollback, expected costs and the later CI/CD path.
-
-Cloud environment connection test.
+Actions owns gated Vercel container delivery. Trusted previews use an isolated
+test backend; production requires successful checks on current, protected,
+PR-merged `main`, test delivery, environment approval and a final freshness check.
+Git-triggered Vercel deployments are disabled in `vercel.json`; the provider Git
+integration must also be disconnected. Schema-changing delivery fails closed
+until R3 adds migration execution. See [deployment/setup/rollback](docs/deployment.md)
+for the required check, protected environments, exact variable mapping and setup
+status. Hosted delivery is pending provider setup and verification; this PR does
+not create accounts or paid services.
