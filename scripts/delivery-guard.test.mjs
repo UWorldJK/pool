@@ -210,6 +210,7 @@ test("workflow wiring keeps untrusted checks secretless and uses one non-cancell
   const release = load(releaseText);
   assert.deepEqual(Object.keys(ci.on), ["pull_request", "push"]);
   assert.ok(ci.on.pull_request.branches.includes("lkluge/auth-session-flow"), "R3 stacked base runs mandatory checks");
+  assert.ok(ci.on.pull_request.branches.includes("lkluge/family-circle-membership"), "R4 stacked base runs mandatory checks");
   assert.ok(!JSON.stringify(ci).includes("secrets."));
   assert.equal(ci.jobs.checks.steps.find((step) => step.uses?.startsWith("actions/setup-node")).with["node-version-file"], ".nvmrc");
   assert.equal(ci.jobs.checks.steps.find((step) => step.uses?.startsWith("docker/setup-compose-action")).with.version, "v2.40.3");

@@ -204,8 +204,9 @@ migration and prevents app upload. Earlier successful SQL stays applied and need
 a forward fix if the release later fails. Error output containing database details
 is suppressed. No hosted reset/seed or migration during image build/startup exists.
 
-R3 is stacked on R2, which is stacked on R1. CI runs against
-`lkluge/auth-session-flow` as well as the earlier bases. Stacked PRs remain
+R4 is stacked on R3, which includes R2 and R1. CI runs against
+`lkluge/family-circle-membership` as well as the earlier bases. R4 adds
+only the next ordered ride-planning migration; inherited migrations remain unchanged. Stacked PRs remain
 ineligible for automatic hosted delivery: the inherited preview gate requires a
 PR to `main`, trusted merged workflow/CI configuration and environment review.
 Stacking never authorizes production. Retarget after predecessor merges and
@@ -273,4 +274,5 @@ alerts using [Vercel plans](https://vercel.com/docs/plans) and
 [Supabase pricing](https://supabase.com/pricing) before approving any purchase.
 R2 adds local Auth mail and sign-in; see [authentication setup](authentication.md)
 for test/production SMTP, canonical origins and the still-pending hosted cycle.
-R3 adds the membership schema and ordered migration executor; ride workflows remain deferred.
+R3 adds the membership schema and ordered migration executor. R4 adds persisted ride
+planning and enrollment; driver assignment remains deferred.

@@ -2,7 +2,7 @@ import { createRequire, registerHooks } from "node:module";
 
 const require = createRequire(import.meta.url);
 const nextModules = Object.fromEntries(
-  ["next/headers", "next/navigation", "next/server"].map((name) => [
+  ["next/headers", "next/navigation", "next/server", "next/cache"].map((name) => [
     name,
     require.resolve(name),
   ]),

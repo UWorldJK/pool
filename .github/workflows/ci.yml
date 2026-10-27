@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, lkluge/ci-vercel-delivery, lkluge/auth-session-flow]
+    branches: [main, lkluge/ci-vercel-delivery, lkluge/auth-session-flow, lkluge/family-circle-membership]
   push:
     branches: [main]
 
@@ -40,7 +40,7 @@ jobs:
       - run: npm run check
       - name: Install Auth browser
         run: npx playwright install --with-deps chromium
-      - name: Clean and upgrade migrations, generated types, real RLS and Auth/membership browsers
+      - name: Clean and upgrade migrations, generated types, real RLS and Auth/membership/ride browsers
         run: npm run test:auth
       - name: Verify pinned deployment CLI without credentials
         run: |

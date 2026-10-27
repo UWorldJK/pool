@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import { verifiedUser } from "@/lib/auth/identity";
@@ -16,7 +17,7 @@ export default async function FamilyPage({ params }: { params: Promise<{ id: str
   if (members.error) throw new Error("Members could not be loaded");
   const owner = members.data.some((member) => member.user_id === user.id && member.role === "owner");
   return <>
-    <h1>{family.data.name}</h1><h2>Guardians</h2>
+    <h1>{family.data.name}</h1><Link href={`/app/children?family=${id}`}>Set up this family’s children</Link><h2>Guardians</h2>
     <ul>{members.data.map((member) => <li key={member.user_id}>
       {member.profiles?.display_name} · {member.role}{member.user_id === user.id ? " (you)" : ""}
       {(owner || member.user_id === user.id) && <MembershipForm command="remove-guardian" fields={{ family_id: id, user_id: member.user_id }} label={member.user_id === user.id ? "Leave family" : "Remove guardian"}>
