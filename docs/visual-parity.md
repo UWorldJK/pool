@@ -126,7 +126,9 @@ explicit consent, unauthorized action replay and save/error visibility.
 
 The existing test harness owns a separate disposable backend on ports
 55320–55329. Its clean/upgrade and authorization tests never reset the user's
-normal Pool backend. Node 24 lint/types, 72 unit regressions and production build,
+normal Pool backend. CLI subprocesses also run with that disposable directory as
+their working directory, keeping reset/branch discovery out of the application
+checkout. Node 24 lint/types, 72 unit regressions and production build,
 Compose validation and the production container smoke have passed. The final full
 local run passed all **12 browser journeys** (5.0 minutes), including independent
 child receipt and removal of completed rides from the upcoming queue. The six

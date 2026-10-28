@@ -26,6 +26,11 @@ const project = `pool-auth-test-${process.pid}`;
 const cli = resolve("node_modules/.bin/supabase");
 const network = `${project}-network`;
 const args = ["--workdir", directory, "--network-id", network];
+// Keep CLI branch discovery inside the disposable project too. --workdir alone
+// does not prevent reset from discovering the calling checkout's Git branch.
+function disposableSupabase(commandArgs, options = {}) {
+  return execFileSync(cli, commandArgs, { ...options, cwd: directory });
+}
 mkdirSync(join(directory, "supabase"), { recursive: true });
 mkdirSync(join(directory, "auth/email"), { recursive: true });
 for (const template of ["confirmation", "recovery"])
@@ -71,7 +76,7 @@ function cleanup() {
   let stopped = !backendAttempted;
   try {
     if (backendAttempted)
-      execFileSync(cli, ["stop", "--no-backup", ...args], {
+      disposableSupabase(["stop", "--no-backup", ...args], {
         stdio: "ignore",
         timeout: 60_000,
       });
@@ -135,12 +140,12 @@ try {
   );
   // Suppress CLI stdout because it prints admin credentials we neither use nor log.
   backendAttempted = true;
-  execFileSync(cli, ["start", ...args], {
+  disposableSupabase(["start", ...args], {
     stdio: ["ignore", "ignore", "inherit"],
     timeout: 600_000,
   });
   const status = JSON.parse(
-    execFileSync(cli, ["status", "--output", "json", ...args], {
+    disposableSupabase(["status", "--output", "json", ...args], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     }),
@@ -152,30 +157,30 @@ try {
   const baseline = await baselineIdentity(status);
   mkdirSync(join(directory, "supabase/migrations"), { recursive: true });
   copyFileSync("supabase/migrations/20261027000100_membership.sql", join(directory, "supabase/migrations/20261027000100_membership.sql"));
-  execFileSync(cli, ["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  disposableSupabase(["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
   await baseline();
   const verifyR3 = await rideUpgradeIdentity(status);
   copyFileSync("supabase/migrations/20261027000200_ride_planning.sql", join(directory,"supabase/migrations/20261027000200_ride_planning.sql"));
-  execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
   await verifyR3();
   const verifyR4 = await driverUpgradeIdentity(status);
   copyFileSync("supabase/migrations/20261027000300_driver_confirmation.sql", join(directory,"supabase/migrations/20261027000300_driver_confirmation.sql"));
-  execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
   await verifyR4();
   const verifyR5 = await handoffUpgradeIdentity(status);
   copyFileSync("supabase/migrations/20261027000400_ride_handoffs.sql", join(directory,"supabase/migrations/20261027000400_ride_handoffs.sql"));
-  execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
   const verifyR6 = await verifyR5();
   copyFileSync("supabase/migrations/20261027000500_handoff_request_bindings.sql", join(directory,"supabase/migrations/20261027000500_handoff_request_bindings.sql"));
-  execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
   await verifyR6();
   const verifyR7 = await replacementUpgradeIdentity(status);
   copyFileSync("supabase/migrations/20261027000600_driver_replacements.sql", join(directory,"supabase/migrations/20261027000600_driver_replacements.sql"));
-  execFileSync(cli,["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
   await verifyR7();
   const verifyCompletedR7 = await replacementCompletedUpgradeIdentity(status);
   cpSync("supabase/migrations", join(directory, "supabase/migrations"), { recursive: true });
-  execFileSync(cli, ["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  disposableSupabase(["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
   await verifyCompletedR7();
   await verifyR7();
   await verifyR6();
@@ -184,7 +189,7 @@ try {
     assert.equal(database.hostname, "127.0.0.1");
     assert.equal(database.port, "55322");
     try {
-      return execFileSync(cli, ["gen", "types", "--lang", "typescript", "--db-url", status.DB_URL, "--schema", "public", "--workdir", directory], {
+      return disposableSupabase(["gen", "types", "--lang", "typescript", "--db-url", status.DB_URL, "--schema", "public", "--workdir", directory], {
         encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 2 * 1024 * 1024,
       }).replace(/[\t ]+$/gm, "");
     } catch {
@@ -193,7 +198,7 @@ try {
   }
   const upgradedTypes = generatedTypes();
   const focusedBrowser = process.argv.includes("--membership-only");
-  if (!focusedBrowser) execFileSync(cli, ["db", "reset", "--local", "--no-seed", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  if (!focusedBrowser) disposableSupabase(["db", "reset", "--local", "--no-seed", ...args], { stdio: ["ignore", "ignore", "inherit"] });
   const cleanTypes = focusedBrowser ? upgradedTypes : generatedTypes();
   assert.equal(cleanTypes, upgradedTypes, "Clean and R2/R3/R4/R5/R6 upgrade schemas differ");
   if (process.argv.includes("--write-types")) writeFileSync("src/lib/supabase/database.types.ts", cleanTypes);
