@@ -1,20 +1,29 @@
-export default function Home() {
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Brand } from "@/components/bits";
+import { getMe, getSession, nextStep } from "@/lib/pool/data";
+
+export default async function Home() {
+  const { user } = await getSession();
+  if (user) {
+    redirect(nextStep(await getMe()));
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-16">
-      <section className="w-full max-w-xl rounded-3xl border border-[#d5ddcf] bg-white p-8 shadow-sm sm:p-12">
-        <p className="mb-12 text-3xl font-bold tracking-tight">pool.</p>
-        <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-[#4b6354]">
-          A little coordination. A lot of peace of mind.
+    <main id="main" className="center-page">
+      <section className="card panel">
+        <Brand />
+        <p className="eyebrow">A little coordination. A lot of peace of mind.</p>
+        <h1 className="mt-3">A smoother ride for every family.</h1>
+        <p>
+          Plan the week with your team, choose who can drive your child, and confirm every pickup and handoff.
         </p>
-        <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          A smoother ride for every family.
-        </h1>
-        <p className="mt-6 text-lg leading-relaxed text-[#4b6354]">
-          We’re building a calmer way for families to share the driving.
-        </p>
-        <p className="mt-10 border-t border-[#d5ddcf] pt-6 text-sm leading-relaxed text-[#4b6354]">
-          Pool is in development. Accounts and ride planning are coming next.
-        </p>
+        <div className="journey-actions">
+          <Link className="button primary" href="/login">
+            Sign in or get started
+          </Link>
+        </div>
+        <p className="footnote">Start a team for your carpool, or join one with the invite link an organizer sent you.</p>
       </section>
     </main>
   );

@@ -18,7 +18,11 @@
     "supabase:stop": "supabase stop --network-id pool-local",
     "supabase:status": "supabase status --network-id pool-local",
     "supabase:reset": "supabase db reset --local --network-id pool-local",
-    "supabase:check": "node --env-file-if-exists=.env.local scripts/check-supabase.mjs"
+    "supabase:check": "node --env-file-if-exists=.env.local scripts/check-supabase.mjs",
+    "db:test": "supabase test db --local --network-id pool-local",
+    "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
+    "test:e2e": "playwright test",
+    "db:demo": "node scripts/demo-seed.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -29,6 +33,7 @@
     "server-only": "0.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",

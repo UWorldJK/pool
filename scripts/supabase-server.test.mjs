@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { createRequire, registerHooks } from "node:module";
+import { pathToFileURL } from "node:url";
 import test, { after, beforeEach, mock } from "node:test";
 
 const require = createRequire(import.meta.url);
-const headersModule = require.resolve("next/headers");
+// A file URL, not a path: Windows paths ("C:\...") are not valid ESM specifiers.
+const headersModule = pathToFileURL(require.resolve("next/headers")).href;
 const serverModule = new URL("../src/lib/supabase/server.ts", import.meta.url);
 
 // Match Next.js resolution for its extensionless imports in the native test runner.

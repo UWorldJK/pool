@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:32px 16px;background:#f6f7f2;font-family:Arial,Helvetica,sans-serif;color:#253c35">
+    <table role="presentation" width="100%" style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #dce2d9;border-radius:15px">
+      <tr>
+        <td style="padding:32px">
+          <p style="margin:0 0 24px;font-size:28px;font-weight:800;letter-spacing:-1px">pool<span style="color:#255741">.</span></p>
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.55">Use this button to sign in to Pool. It works once and expires in an hour.</p>
+          <p style="margin:0 0 24px">
+            <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email"
+               style="display:inline-block;padding:12px 20px;background:#255741;color:#ffffff;border-radius:9px;font-weight:bold;text-decoration:none">Sign in to Pool</a>
+          </p>
+          <p style="margin:0;font-size:13px;line-height:1.6;color:#5b6c64">If you didn't ask for this, you can ignore this email. Nobody can sign in without the link.</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
