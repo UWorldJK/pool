@@ -170,7 +170,7 @@ GitHub's **CI / checks** runs `npm ci`, `npm run check`, actual Auth browser tes
 and clean/upgrade migrations, generated-type drift and real RLS/command tests
 against disposable local Supabase, disposable Compose validation and the final
 `linux/amd64` container smoke on every PR to `main`
-and every merged `main` revision (including the R2, R3, R4, R5 and R6 stacked PR bases). These
+and every merged `main` revision (including the R2, R3, R4, R5, R6 and R7 stacked PR bases). These
 mandatory checks need no hosted account,
 `.env.local`, prototypes or cloud credentials. Guard regressions run with `npm test`.
 When checking inside the development container, explicitly use production mode:
@@ -258,3 +258,12 @@ acceptance and every child's guardian consent are saved. Deadlines use database
 time; finalization swaps reservations atomically and replacements stop at first
 pickup. See [replacement behavior, authority and validation](docs/driver-replacements.md).
 R7 is stacked on R6 and retains all production release restrictions.
+
+## Pool visual design
+
+R8 carries the original Pool typography, palette, navigation and card composition
+through the real account, family, schedule, assignment and handoff screens. The
+full week and explicit driver/guardian responsibilities remain visible. See the
+[reference choices, intentional differences and desktop/phone screenshots](docs/visual-parity.md).
+R8 is stacked on R7; production still requires validated, protected, PR-merged
+current `main`.

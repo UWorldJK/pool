@@ -1,3 +1,4 @@
+import { captureState } from "./presentation.mjs";
 import { test, expect } from "@playwright/test";
 import { account, family, invitation, openAndCheck, password } from "./helpers.mjs";
 async function joinCircle(inviter, recipient, circleUrl, familyName) {
@@ -94,6 +95,7 @@ test("R4 real multi-session planning, private offers, endpoint denials, enrollme
     await expect(foreignForm.locator('p[role="alert"]')).toContainText("unavailable");
     const rideUrl = await plan(creator.page, "outbound");
     await other.page.goto(rideUrl);
+    await expect(other.page.getByText("Join with your family to view driver status",{exact:false})).toBeVisible();
     await expect(other.page.getByText("Only the minimal invitation summary", { exact: false })).toBeVisible();
     await expect(other.page.getByText("101 Secret Pickup, side door", { exact: false })).toHaveCount(0);
     await expect(other.page.getByText("Creator child", { exact: true })).toHaveCount(0);
@@ -143,6 +145,7 @@ test("R4 real multi-session planning, private offers, endpoint denials, enrollme
     await expect(creator.page.getByRole("listitem")).toHaveCount(2);
     await expect(creator.page.getByText("Outbound · Unassigned", { exact: false })).toBeVisible();
     await expect(creator.page.getByText("Return · Unassigned", { exact: false })).toBeVisible();
+    await captureState(creator.page,"schedule");
     await creator.page.goto("/app/schedule?date=2028-06-01&timezone=UTC");
     await expect(creator.page.getByText("No rides in this week.", { exact: false })).toBeVisible();
     for (const date of ["2021-03-16", "2021-03-23"]) {

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { OutcomeFocus } from "./outcome-focus";
 import { startTransition, useActionState, useState, useSyncExternalStore } from "react";
 import { rideAction } from "./ride-actions";
 import type { RideState } from "@/lib/rides";
@@ -18,13 +19,14 @@ export function RideForm({ command, fields = {}, label, children }: { command: s
     <input type="hidden" name="command" value={command} />
     {Object.entries(fields).map(([name, value]) => <input key={name} type="hidden" name={name} value={name === "ride_id" && command === "createRide" ? requestId : name === "child_id" && command === "saveOwnChild" && fields.revision === "0" ? childId : value} />)}
     <fieldset disabled={!ready || pending || Boolean(state.path && (command === "createRide" || (command === "saveOwnChild" && fields.revision === "0")))}>{children}<button type="submit">{pending ? "Saving…" : label}</button></fieldset>
-    {pending && <p role="status">Saving your change…</p>}
+    <OutcomeFocus state={state}>{pending && <p role="status">Saving your change…</p>}
     {!pending && state.error && <p role="alert">{state.error} <a href="">Reload current data</a></p>}
     {!pending && state.message && <p role="status">{state.message}</p>}
     {!pending && state.path && <><Link href={state.path}>Open saved result</Link>
       {command === "createRide" && <button type="button" onClick={() => window.location.reload()}>Plan another ride</button>}
       {command === "saveOwnChild" && fields.revision === "0" && <button type="button" onClick={() => window.location.reload()}>Add another child</button>}
     </>}
+    </OutcomeFocus>
   </form>;
 }
 const subscribe = () => () => {};

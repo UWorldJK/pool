@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeading } from "../presentation";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import { RideList } from "../ride-list";
 import { DriverPanel } from "../driver-panel";
@@ -16,7 +17,7 @@ export default async function Attention({ searchParams }: { searchParams: Promis
   const pending = active.filter((offer) => offer.status === "invited");
   const joined = active.filter((offer) => offer.status === "joined" && (statuses.data.find((p) => p.ride_id===offer.id)?.coverage !== "confirmed" || statuses.data.find((p) => p.ride_id===offer.id)?.proposal_status === "pending"));
   const driverReplies = inbox.data.slice(0,25);
-  return <><h1>Needs attention</h1><p>Family rides over the next year and pending driver requests. Needs-driver, awaiting-confirmation and confirmed are separate states. A past pickup never implies completion. Refresh to see current replies.</p>
+  return <><PageHeading eyebrow="The next step is yours" title="Needs attention">Family rides over the next year and pending driver requests. Needs-driver, awaiting-confirmation and confirmed are separate states. A past pickup never implies completion. Refresh to see current replies.</PageHeading>
     <h2>Pickup and handoffs</h2><p>Manually reported progress. Unfinished trips remain here after their scheduled end. Arrival still requires explicit guardian receipt.</p>
     {trips.data.length ? <ul>{trips.data.slice(0,25).map((t) => <li key={t.ride_id}><Link href={`/app/rides/${t.ride_id}`}>{t.pickup_summary} → {t.destination_summary}</Link> · {t.started_at ? "Trip in progress" : "Awaiting pickup"} · {t.awaiting_count} awaiting receipt · {t.missing_recipient_count} missing active recipients{t.is_driver && " · You are the driver"}</li>)}</ul> : <p>No pickup or handoff items.</p>}
     {trips.data.length>25 && <Link href={`/app/attention?after_trip=${trips.data[24].ride_id}`}>Next pickup and handoff items</Link>}

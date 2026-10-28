@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Brand } from "../app/presentation";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +11,7 @@ export default function AuthLayout({
   return (
     <main className="auth-container">
       <section className="auth-card">
-        <Link className="brand" href="/">
-          pool.
-        </Link>
+        <Link href="/" aria-label="Pool home"><Brand /></Link>
         {children}
       </section>
     </main>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeading } from "../../presentation";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import { RideForm, ChildChoices, LocalTimeField } from "../../ride-form";
 export default async function NewRide({ searchParams }: { searchParams: Promise<{ family?: string; circle?: string }> }) {
@@ -12,7 +13,7 @@ export default async function NewRide({ searchParams }: { searchParams: Promise<
   const { family, circle } = context;
   const [children, roster] = await Promise.all([client.from("children").select("id,display_name").eq("family_id", family.id).order("display_name"), client.rpc("circle_roster", { p_circle_id: circle.id })]);
   if (children.error || roster.error) throw new Error("Riders could not be loaded");
-  return <><h1>Plan a ride</h1><p>{family.name} · {circle.name}. Every planned ride needs a driver.</p>
+  return <div className="ride-plan"><PageHeading eyebrow="Make a plan, together" title="Plan a ride">{family.name} · {circle.name}. Every planned ride needs a driver.</PageHeading>
     <nav aria-label="Planning context">{contexts.map((item) => <Link key={`${item.family.id}-${item.circle.id}`} href={`/app/rides/new?family=${item.family.id}&circle=${item.circle.id}`}>{item.family.name} · {item.circle.name}</Link>)}</nav>
     {!children.data.length ? <p>Add at least one of your own children in <Link href={`/app/children?family=${family.id}`}>child setup</Link> before planning.</p> : <RideForm key={`${family.id}-${circle.id}`} command="createRide" fields={{ ride_id: crypto.randomUUID(), family_id: family.id, circle_id: circle.id }} label="Create ride">
       <label>Travel direction<select name="direction" required><option value="outbound">Outbound</option><option value="return">Return</option></select></label>
@@ -27,5 +28,5 @@ export default async function NewRide({ searchParams }: { searchParams: Promise<
       <p>Times use the selected timezone. Missing spring-forward times are rejected. Choose an occurrence explicitly for a repeated autumn hour.</p>
       <ChildChoices>{children.data}</ChildChoices><p>Choose at least one of your children.</p>
       <fieldset><legend>Invite other circle families</legend>{roster.data.filter((item) => item.family_id !== family.id).map((item) => <label className="checkbox-label" key={item.family_id}><input type="checkbox" name="invited_family_ids" value={item.family_id} />{item.family_name}</label>)}<p>Each invited guardian chooses only their own children.</p></fieldset>
-    </RideForm>}</>;
+    </RideForm>}</div>;
 }

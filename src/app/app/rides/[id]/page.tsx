@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeading, StatusBadge } from "../../presentation";
 import { notFound } from "next/navigation";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import { rideTime } from "@/lib/rides";
@@ -25,7 +26,7 @@ export default async function RideDetail({ params, searchParams }: { params: Pro
   if (!offer && (status?.is_driver || status?.is_current_driver || status?.is_completed_driver)) {
     const [exact, enrolled] = await Promise.all([client.from("ride_locations").select("pickup,destination").eq("ride_id",id).maybeSingle(),client.from("ride_riders").select("child_id,display_name,seat_requirement").eq("ride_id",id)]);
     if (exact.error || enrolled.error) throw new Error("Assignment could not be loaded");
-    return <><h1>{status.pickup_summary} → {status.destination_summary}</h1><p>Pickup: {rideTime(status.starts_at,status.timezone)}<br />Drop-off: {rideTime(status.ends_at,status.timezone)}</p><DriverPanel status={status} />
+    return <><PageHeading eyebrow="Your ride" title={`${status.pickup_summary} → ${status.destination_summary}`} /><p>Pickup: {rideTime(status.starts_at,status.timezone)}<br />Drop-off: {rideTime(status.ends_at,status.timezone)}</p><DriverPanel status={status} />
       {exact.data ? <><h2>Exact locations</h2><p>Pickup: {exact.data.pickup}</p><p>Drop-off: {exact.data.destination}</p><h2>Enrolled riders</h2><ul>{enrolled.data.map((c) => <li key={c.child_id}>{c.display_name} · {c.seat_requirement}</li>)}</ul></> : <p>Only the minimal driver proposal is available. Exact private locations become available after confirmation.</p>}
       {exact.data && <HandoffPanel rideId={id} revision={status.ride_revision} timezone={status.timezone} isDriver={status.is_current_driver} cancelled={Boolean(status.cancelled_at)} />}</>;
   }
@@ -44,19 +45,21 @@ export default async function RideDetail({ params, searchParams }: { params: Pro
   const locked = frozen || status?.coverage === "confirmed" || status?.coverage === "awaiting_confirmation";
   const fields = { ride_id: id, family_id: offer.family_id, revision: String(offer.revision) };
   const familyName = (familyId: string) => families.data.find((f) => f.id === familyId)?.name ?? roster.data.find((f) => f.family_id === familyId)?.family_name ?? "Invited circle family";
-  return <><h1>{offer.pickup_summary} → {offer.destination_summary}</h1>
-    <p>{offer.direction === "return" ? "Return" : "Outbound"} · Revision {offer.revision} · {offer.cancelled_at ? "Cancelled" : trip.data?.completed_at ? "Ride completed" : coverageLabel(status?.coverage)}</p>
+  const visibleCoverage = !status && offer.status !== "joined" ? "Join with your family to view driver status" : coverageLabel(status?.coverage);
+  return <><PageHeading eyebrow="Your ride" title={`${offer.pickup_summary} → ${offer.destination_summary}`} />
+    {!status && !offer.cancelled_at && <StatusBadge tone={offer.status === "joined" ? "attention" : "neutral"}>{offer.status === "joined" ? "Needs a driver" : "Private ride summary"}</StatusBadge>}
+    <p>{offer.direction === "return" ? "Return" : "Outbound"} · Revision {offer.revision} · {offer.cancelled_at ? "Cancelled" : trip.data?.completed_at ? "Ride completed" : visibleCoverage}</p>
     <p>Pickup: <time dateTime={offer.starts_at}>{rideTime(offer.starts_at, offer.timezone)}</time><br />Drop-off: <time dateTime={offer.ends_at}>{rideTime(offer.ends_at, offer.timezone)}</time><br />Timezone: {offer.timezone}</p>
     <p>Family: {familyName(offer.family_id)} · Participation: {offer.status}</p>
     <nav aria-label="Your family contexts">{offers.data.map((item) => <Link key={item.family_id} href={`/app/rides/${id}?family=${item.family_id}`}>{familyName(item.family_id)}</Link>)}</nav>
     {offer.cancelled_at && <p role="status">The creator cancelled this ride. It cannot be reopened. No travel or driver assignment is implied.</p>}
-    {locations.data ? <><h2>Exact locations</h2><p>Pickup: {locations.data.pickup}</p><p>Drop-off: {locations.data.destination}</p>
+    {status && <DriverPanel status={status} />}
+    {locations.data && <HandoffPanel rideId={id} revision={offer.revision} timezone={offer.timezone} isDriver={Boolean(status?.is_current_driver)} cancelled={Boolean(offer.cancelled_at)} />}
+    {locations.data ? <section aria-labelledby="exact-locations"><h2 id="exact-locations">Exact locations</h2><p>Pickup: {locations.data.pickup}</p><p>Drop-off: {locations.data.destination}</p>
       <h2>Enrolled riders</h2>{riders.data.length ? <ul>{riders.data.map((rider) => <li key={rider.child_id}>{rider.display_name} · {rider.seat_requirement} · {familyName(rider.family_id)}</li>)}</ul> : <p>No riders currently enrolled.</p>}
       <h2>Family responses</h2><ul>{participation.data.map((item) => <li key={item.family_id}>{familyName(item.family_id)} · {item.status}</li>)}</ul>
-    </> : <p>Only the minimal invitation summary is available. Exact pickup, drop-off and riders become visible when your family joins with its own child.</p>}
-    {status && <DriverPanel status={status} />}
+    </section> : <p>Only the minimal invitation summary is available. Exact pickup, drop-off and riders become visible when your family joins with its own child.</p>}
     {status && offer.status === "joined" && <ReplacementPanel status={status} familyId={offer.family_id} revision={offer.revision} frozen={frozen} options={options.data} after={query.after_replacement} />}
-    {locations.data && <HandoffPanel rideId={id} revision={offer.revision} timezone={offer.timezone} isDriver={Boolean(status?.is_current_driver)} cancelled={Boolean(offer.cancelled_at)} />}
     {!offer.cancelled_at && offer.status === "joined" && <>
       {!locked && status?.current_assignment_release_reason !== "withdrawn" && <><h2>Nominate an initial driver</h2><p>Every invited family must respond first. Nomination freezes this roster and vehicle version; acceptance and each child’s consent are separate actions.</p>
         {options.data.length ? <DriverForm key={`nominate-${offer.revision}`} command="proposeDriver" fields={{ ...fields,proposal_id:crypto.randomUUID() }} label="Nominate driver">

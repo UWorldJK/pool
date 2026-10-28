@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeading, EmptyState } from "../presentation";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import { addDays, dateInZone, validTimezone, weekRange } from "@/lib/rides";
 import { RideList } from "../ride-list";
@@ -13,8 +14,14 @@ export default async function Schedule({ searchParams }: { searchParams: Promise
   const statuses = await client.rpc("driver_statuses",{ p_ride_ids:[...new Set(offers.data.map((ride) => ride.id))] });
   if (statuses.error) throw new Error("Assignment statuses could not be loaded");
   const weekLink = (date: string) => `/app/schedule?date=${date}&timezone=${encodeURIComponent(zone)}`;
-  return <><h1>Weekly schedule</h1><p>Week of {range.monday} · {zone}. Both travel directions are shown. Ride times retain each ride’s timezone. A past pickup does not mean a ride completed.</p>
-    <form className="auth-form"><label>Week containing date<input type="date" name="date" defaultValue={range.monday} required /></label><label>Schedule timezone<input name="timezone" defaultValue={zone} required maxLength={100} /></label><button type="submit">Show week</button></form>
-    <nav aria-label="Schedule weeks"><Link href={weekLink(addDays(range.monday, -7))}>Previous week</Link><Link href={weekLink(range.next)}>Next week</Link></nav>
-    {offers.data.length ? <RideList offers={offers.data} statuses={statuses.data} /> : <p>No rides in this week. Plan a ride or wait for a family invitation.</p>}<Link href="/app/rides/new">Plan a ride</Link></>;
+  const unique = [...new Map(offers.data.map((ride) => [ride.id, ride])).values()];
+  return <><PageHeading eyebrow="A little planning goes a long way" title="Weekly schedule" action={<Link className="button primary" href="/app/rides/new">＋ Plan a ride</Link>}>Week of {range.monday} · {zone}. Both travel directions are shown. Ride times retain each ride’s timezone. A past pickup does not mean a ride completed.</PageHeading>
+    <form className="auth-form week-filter"><fieldset><label>Week containing date<input type="date" name="date" defaultValue={range.monday} required /></label><label>Schedule timezone<input name="timezone" defaultValue={zone} required maxLength={100} /></label><button type="submit">Show week</button></fieldset></form>
+    <nav className="week-navigation" aria-label="Schedule weeks"><Link href={weekLink(addDays(range.monday, -7))}>Previous week</Link><Link href={weekLink(range.next)}>Next week</Link></nav>
+    <div className="week-strip" role="group" aria-label="Full week">{Array.from({ length:7 }, (_, index) => {
+      const date = addDays(range.monday,index);
+      const count = unique.filter((ride) => dateInZone(new Date(ride.starts_at),zone) === date).length;
+      return <div className="week-day" key={date}><span>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][index]}</span><strong>{Number(date.slice(-2))}</strong><small>{count} {count === 1 ? "ride" : "rides"}</small></div>;
+    })}</div>
+    {offers.data.length ? <RideList offers={offers.data} statuses={statuses.data} /> : <EmptyState title="A little room in the week">No rides in this week. Plan a ride or wait for a family invitation.</EmptyState>}<Link href="/app/rides/new">Plan a ride</Link></>;
 }

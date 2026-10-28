@@ -2,6 +2,7 @@ import { createReadOnlyClient } from "@/lib/supabase/server";
 import { progressLabel } from "@/lib/handoffs";
 import { rideTime } from "@/lib/rides";
 import { HandoffForm } from "./handoff-form";
+import { StatusBadge } from "./presentation";
 import { Confirmation } from "./driver-form";
 export async function HandoffPanel({ rideId, revision, timezone, isDriver, cancelled }: { rideId: string; revision: number; timezone: string; isDriver: boolean; cancelled: boolean }) {
   const client = await createReadOnlyClient();
@@ -22,15 +23,15 @@ export async function HandoffPanel({ rideId, revision, timezone, isDriver, cance
   const started = Boolean(trip.data);
   return <section aria-labelledby="trip-progress"><h2 id="trip-progress">Manually reported trip progress</h2>
     <p>Adults report pickup and arrival. Each designated guardian must separately confirm actual receipt of their child. Refresh for saved reports. These reports do not provide live tracking, automatic arrival detection or a safety guarantee.</p>
-    <p role="status">{trip.data?.completed_at ? "Ride completed — every child’s handoff is confirmed." : started ? "Trip in progress — handoffs remain." : "Trip has not started. Every child needs a designated guardian before first pickup."}</p>
+    <p role="status" className="notice">{trip.data?.completed_at ? "Ride completed — every child’s handoff is confirmed." : started ? "Trip in progress — handoffs remain." : "Trip has not started. Every child needs a designated guardian before first pickup."}</p>
     {started && <p>The active plan is frozen. Ordinary cancellation, withdrawal, consent revocation, recipient changes and removal of responsible memberships are unavailable.</p>}
-    <ul>{riders.data.map((rider) => {
+    <ul className="journey-list">{riders.data.map((rider) => {
       const h = handoffs.data.find((item) => item.child_id===rider.child_id);
       const own = guardians.data.some((g) => g.family_id===rider.family_id && g.user_id===actor);
       const fields = { ride_id:rideId,child_id:rider.child_id,revision:String(revision),version:String(h?.version ?? 0) };
       const recipient = h?.recipient_id === actor && own;
       return <li key={rider.child_id}><article aria-label={`Journey for ${rider.display_name}`}>
-        <h3 id={`journey-${rideId}-${rider.child_id}`} tabIndex={-1}>{rider.display_name}</h3><p aria-live="polite" aria-atomic="true"><strong>{progressLabel(h?.status)}</strong> · Recipient: {h?.recipient_name ?? "Not designated"}</p>
+        <h3 id={`journey-${rideId}-${rider.child_id}`} tabIndex={-1}>{rider.display_name}</h3><p aria-live="polite" aria-atomic="true"><StatusBadge tone={h?.status === "awaiting_handoff" ? "attention" : h?.status === "completed" ? "positive" : "neutral"}><strong>{progressLabel(h?.status)}</strong></StatusBadge> · Recipient: {h?.recipient_name ?? "Not designated"}</p>
         {h?.picked_up_at && <p>Pickup reported: <time dateTime={h.picked_up_at}>{rideTime(h.picked_up_at,timezone)}</time></p>}
         {h?.arrived_at && <p>Arrival reported: <time dateTime={h.arrived_at}>{rideTime(h.arrived_at,timezone)}</time>. {h.status!=="completed" && "Guardian receipt is still required."}</p>}
         {h?.completed_at && <p>Receipt confirmed: <time dateTime={h.completed_at}>{rideTime(h.completed_at,timezone)}</time></p>}
@@ -51,6 +52,6 @@ export async function HandoffPanel({ rideId, revision, timezone, isDriver, cance
         {h?.status==="awaiting_handoff" && !recipient && <p>Awaiting explicit receipt from {h.recipient_name}. Driving or family membership alone does not authorize this receipt.</p>}
       </article></li>;
     })}</ul>
-    <h2>Ride activity</h2>{events.data.length ? <ol>{events.data.map((event) => <li key={event.request_id}>{riders.data.find((r) => r.child_id===event.child_id)?.display_name}: {progressLabel(event.kind)} — reported by {event.actor_name} at <time dateTime={event.occurred_at}>{rideTime(event.occurred_at,timezone)}</time> ({event.occurred_at}).</li>)}</ol> : <p>No pickup, arrival or receipt reports yet.</p>}
+    <h2>Ride activity</h2>{events.data.length ? <ol className="activity-list">{events.data.map((event) => <li key={event.request_id}>{riders.data.find((r) => r.child_id===event.child_id)?.display_name}: {progressLabel(event.kind)} — reported by {event.actor_name} at <time dateTime={event.occurred_at}>{rideTime(event.occurred_at,timezone)}</time> ({event.occurred_at}).</li>)}</ol> : <p>No pickup, arrival or receipt reports yet.</p>}
   </section>;
 }

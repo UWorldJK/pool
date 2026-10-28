@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { OutcomeFocus } from "./outcome-focus";
 import { startTransition, useActionState, useState, useSyncExternalStore } from "react";
 import { driverAction } from "./driver-actions";
 import type { DriverState } from "@/lib/drivers";
@@ -15,10 +16,11 @@ export function DriverForm({ command, fields = {}, label, children }: { command:
     <input type="hidden" name="command" value={command} />
     {Object.entries(fields).map(([name,value]) => <input key={name} type="hidden" name={name} value={creates && (name === "proposal_id" || name === "vehicle_id") ? requestId : value} />)}
     <fieldset disabled={!ready || pending || Boolean(creates && state.path)}>{children}<button type="submit">{pending ? "Saving…" : label}</button></fieldset>
-    {pending && <p role="status">Saving your reply…</p>}
+    <OutcomeFocus state={state}>{pending && <p role="status">Saving your reply…</p>}
     {!pending && state.error && <p role="alert">{state.error} <a href="">Reload current data</a></p>}
     {!pending && state.message && <p role="status">{state.message}</p>}
     {!pending && state.path && <><Link href={state.path}>Open saved result</Link>{creates && command === "saveVehicle" && <button type="button" onClick={() => window.location.reload()}>Add another vehicle</button>}</>}
+    </OutcomeFocus>
   </form>;
 }
 export function Confirmation({ children }: { children: React.ReactNode }) {

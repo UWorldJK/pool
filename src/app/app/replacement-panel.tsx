@@ -46,7 +46,7 @@ export async function ReplacementPanel({ status, familyId, revision, frozen, opt
         <Confirmation>I revoke consent for the current driver and leave this ride needing a driver.</Confirmation>
       </DriverForm>
     </>}
-    <h3>Replacement activity</h3>{history.data.length ? <ol>{history.data.slice(0,25).map((e) => <li key={e.id}>{e.kind} — {e.actor_name} at <time dateTime={e.occurred_at}>{rideTime(e.occurred_at,status.timezone)}</time> · Request {e.proposal_id}</li>)}</ol> : <p>No replacement requests on this page.</p>}
+    <h3>Replacement activity</h3>{history.data.length ? <ol className="activity-list">{history.data.slice(0,25).map((e) => <li key={e.id}>{e.kind} — {e.actor_name} at <time dateTime={e.occurred_at}>{rideTime(e.occurred_at,status.timezone)}</time> · Request {e.proposal_id}</li>)}</ol> : <p>No replacement requests on this page.</p>}
     {history.data.length>25 && <Link href={`/app/rides/${status.ride_id}?${new URLSearchParams({ family:familyId,after_replacement:String(history.data[24].id) })}`}>Next replacement activity</Link>}
     {after && <Link href={`/app/rides/${status.ride_id}?family=${familyId}`}>First replacement activity</Link>}
   </section>;

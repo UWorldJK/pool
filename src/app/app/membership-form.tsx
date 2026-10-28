@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { OutcomeFocus } from "./outcome-focus";
 import { useActionState, useState, useSyncExternalStore } from "react";
 import { membershipAction } from "./membership-actions";
 import { SubmitButton } from "../(auth)/submit-button";
@@ -20,7 +21,7 @@ export function Outcome({ state }: { state: MembershipState }) {
   const [copied, setCopied] = useState(false);
   const origin = useSyncExternalStore(subscribeOrigin, browserOrigin, serverOrigin);
   const link = state.token ? `${origin}/app/invitations#kind=${state.kind}&token=${state.token}` : "";
-  return <>
+  return <OutcomeFocus state={state}>
     {state.error && <p role="alert">{state.error}</p>}
     {state.message && <p role="status">{state.message}</p>}
     {state.path && <Link href={state.path}>Open saved membership</Link>}
@@ -31,7 +32,7 @@ export function Outcome({ state }: { state: MembershipState }) {
       }}>{copied ? "Copied" : "Copy invitation link"}</button>
       <p>Only the invited email can accept. Keep this link private. It is shown once; create a replacement if lost.</p>
     </div>}
-  </>;
+  </OutcomeFocus>;
 }
 const subscribeOrigin = () => () => {};
 const browserOrigin = () => window.location.origin;
