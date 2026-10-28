@@ -16,7 +16,8 @@ concurrency:
 jobs:
   checks:
     name: checks
-    runs-on: ubuntu-latest
+    # Playwright 1.58.2 supports Ubuntu 24.04; ubuntu-latest now uses 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
       NEXT_TELEMETRY_DISABLED: '1'

@@ -5,6 +5,8 @@ PR [#10](https://github.com/UWorldJK/pool/pull/10) continues on
 ([PR #9](https://github.com/UWorldJK/pool/pull/9)). Production remains restricted
 to validated, protected, PR-merged current `main`. This is presentation work:
 no schema, API, RPC, authorization, server-action or release-policy changes.
+CI pins Ubuntu 24.04 because the pinned Playwright version cannot install on
+GitHub’s migrated Ubuntu 26.04 runner. Required checks and release gates are retained.
 
 ## Design and interaction references
 
