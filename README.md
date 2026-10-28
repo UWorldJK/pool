@@ -5,9 +5,13 @@ for Postgres and authentication. Docker runs the app locally; the official
 Supabase CLI manages the local backend. Production uses a Vercel container and
 hosted Supabase.
 
-This is the application foundation. Accounts, ride workflows, live location,
-notifications and calendar sync are not implemented. The existing `sites/` and
-`exports/` prototypes remain reference material and are excluded from builds.
+The core ride loop is built: magic link sign in, households and children, teams
+with invite links, per child driver approvals, ride planning (one off or weekly),
+offers and driver changes that need each family's approval, and pickup, arrival
+and handoff confirmed by people rather than GPS. Live location, notifications,
+maps and calendar sync are not implemented. The `sites/` and `exports/`
+prototypes remain reference material and are excluded from builds. Design and
+decision records are in `.10x/` (start with `.10x/specs/`).
 
 ## Start locally
 
@@ -70,6 +74,29 @@ binding preference is active; on macOS, `lsof -nP -iTCP:54321 -sTCP:LISTEN` show
 the actual host listener. If it listens on all interfaces, stop Supabase and
 correct the Docker Desktop port-binding preference before continuing.
 
+### Try it with demo data
+
+After `npm run supabase:reset`, load the Northside FC team from the prototype,
+mid ride:
+
+```sh
+npm run db:demo
+```
+
+Sign in as `alex@example.test` (or `sarah`, `david`, `maya`) and open the link
+from the local inbox at <http://localhost:54324>. Any other address creates a new
+account and starts onboarding.
+
+### How the app enforces its rules
+
+Pages read through row-level security. Every write is one Postgres function in
+`supabase/migrations/20261027000300_write_functions.sql`, called from
+`src/app/actions.ts`; the `authenticated` role cannot write tables directly. See
+`.10x/adrs/001-rls-reads-rpc-writes.md`. Functions raise `POOL:<CODE>` errors that
+`src/lib/pool/errors.ts` turns into copy.
+
+After changing a migration, run `npm run supabase:reset` and `npm run db:types`.
+
 ### Stop or reset
 
 Stop Watch with Ctrl+C, then stop the app and backend:
@@ -84,8 +111,12 @@ commands to reuse the data. **To erase and recreate only the local database**, r
 `npm run supabase:reset` while Supabase is running. Do not use volume-pruning
 commands as a normal shutdown step.
 
-SQL migrations belong in `supabase/migrations/` when the first schema is added.
-There are intentionally no ride tables or seed families in this foundation.
+SQL migrations live in `supabase/migrations/` and pgTAP tests in
+`supabase/tests/`. `npm run db:test` runs them against the local database;
+`npm run test:e2e` runs the Playwright journeys (Supabase and the dev server
+must be reachable; Playwright starts `npm run dev` if it isn't running). For a
+hosted project, set the same magic link template in the dashboard: the link must
+go to `/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
 
 ## Settings and Supabase clients
 
@@ -142,6 +173,8 @@ See [Supabase's API key guide](https://supabase.com/docs/guides/getting-started/
 ## Verify the foundation
 
 ```sh
+npm run db:test
+npm run test:e2e
 npm run check
 docker compose config --quiet
 npm run supabase:check

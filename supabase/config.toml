@@ -45,6 +45,21 @@ enable_refresh_token_rotation = true
 [auth.email]
 enable_signup = true
 enable_confirmations = true
+# Links go to /auth/confirm with a token hash so they work on any device (ADR-002).
+# Hosted projects need the same templates set in the dashboard.
+otp_expiry = 3600
+
+[auth.email.template.magic_link]
+subject = "Your Pool sign in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Your Pool sign in link"
+content_path = "./supabase/templates/magic_link.html"
+
+# Local only: the default of 2 emails per hour blocks repeated test sign ins.
+[auth.rate_limit]
+email_sent = 1000
 
 # Enable these when an application feature actually needs them.
 [storage]

@@ -1,0 +1,147 @@
+-- Shared setup for pgTAP files. Included with \ir inside each test transaction,
+-- so everything here is rolled back with the test.
+
+create extension if not exists pgtap with schema extensions;
+
+create temporary table test_ids (name text primary key, id uuid not null);
+
+-- Security definer so the authenticated role can look up fixture ids.
+create function pg_temp.id(p_name text)
+returns uuid
+language sql
+stable
+security definer
+as $$ select id from pg_temp.test_ids where name = p_name $$;
+
+create function pg_temp.remember(p_name text, p_id uuid)
+returns uuid
+language sql
+security definer
+as $$ insert into pg_temp.test_ids values (p_name, p_id) on conflict (name) do update set id = excluded.id returning id $$;
+
+create function pg_temp.act_as(p_name text)
+returns void
+language plpgsql
+as $$
+begin
+  execute 'reset role';
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('sub', pg_temp.id(p_name), 'role', 'authenticated')::text,
+    true
+  );
+  execute 'set local role authenticated';
+end;
+$$;
+
+create function pg_temp.as_admin()
+returns void
+language plpgsql
+as $$
+begin
+  execute 'reset role';
+  perform set_config('request.jwt.claims', '', true);
+end;
+$$;
+
+create function pg_temp.make_user(p_name text, p_display text, p_seats int default 3)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_id uuid := gen_random_uuid();
+begin
+  insert into auth.users (id, email, aud, role, raw_user_meta_data)
+  values (v_id, p_name || '@pgtap.test', 'authenticated', 'authenticated', '{}');
+  update public.profiles set display_name = p_display, seats = p_seats where id = v_id;
+  perform pg_temp.remember(p_name, v_id);
+  return v_id;
+end;
+$$;
+
+-- Northside FC with four families, plus an outsider on another team.
+--   alex  (Morgan: Emma, Noah not on the team)   organizer
+--   jamie (Morgan, second adult)
+--   sarah (Chen: Lucas)     david (Brooks: Oliver)     maya (Patel: Ava, 2 seats)
+--   olive (Other team: Zed)
+create function pg_temp.seed()
+returns void
+language plpgsql
+as $$
+declare
+  v_token text;
+begin
+  perform pg_temp.make_user('alex', 'Alex Morgan');
+  perform pg_temp.make_user('jamie', 'Jamie Morgan');
+  perform pg_temp.make_user('sarah', 'Sarah Chen');
+  perform pg_temp.make_user('david', 'David Brooks');
+  perform pg_temp.make_user('maya', 'Maya Patel', 2);
+  perform pg_temp.make_user('olive', 'Olive Other');
+
+  perform pg_temp.act_as('alex');
+  perform pg_temp.remember('morgan', public.create_family('Morgan'));
+  perform pg_temp.remember('emma', public.add_child('Emma', 'Morgan'));
+  perform pg_temp.remember('noah', public.add_child('Noah', 'Morgan'));
+  perform pg_temp.remember('team', public.create_team('Northside FC', 'U12 · The Wolves', 'America/Denver'));
+  perform public.set_team_children(pg_temp.id('team'), array[pg_temp.id('emma')]);
+  v_token := public.create_invite('team', pg_temp.id('team'));
+  perform set_config('test.team_token', v_token, true);
+  perform set_config('test.family_token', public.create_invite('family', pg_temp.id('morgan')), true);
+
+  perform pg_temp.act_as('jamie');
+  perform public.accept_invite(current_setting('test.family_token'));
+  perform public.accept_invite(v_token);
+
+  perform pg_temp.act_as('sarah');
+  perform pg_temp.remember('chen', public.create_family('Chen'));
+  perform pg_temp.remember('lucas', public.add_child('Lucas', 'Chen'));
+  perform public.accept_invite(v_token);
+  perform public.set_team_children(pg_temp.id('team'), array[pg_temp.id('lucas')]);
+
+  perform pg_temp.act_as('david');
+  perform pg_temp.remember('brooks', public.create_family('Brooks'));
+  perform pg_temp.remember('oliver', public.add_child('Oliver', 'Brooks'));
+  perform public.accept_invite(v_token);
+  perform public.set_team_children(pg_temp.id('team'), array[pg_temp.id('oliver')]);
+
+  perform pg_temp.act_as('maya');
+  perform pg_temp.remember('patel', public.create_family('Patel'));
+  perform pg_temp.remember('ava', public.add_child('Ava', 'Patel'));
+  perform public.accept_invite(v_token);
+  perform public.set_team_children(pg_temp.id('team'), array[pg_temp.id('ava')]);
+
+  perform pg_temp.act_as('olive');
+  perform pg_temp.remember('other', public.create_family('Other'));
+  perform pg_temp.remember('zed', public.add_child('Zed', 'Other'));
+  perform pg_temp.remember('other_team', public.create_team('Eastside United', 'U12', 'America/Denver'));
+  perform public.set_team_children(pg_temp.id('other_team'), array[pg_temp.id('zed')]);
+
+  perform pg_temp.as_admin();
+end;
+$$;
+
+-- Local start time in the team's zone, `p_hours` from now.
+create function pg_temp.local_in(p_hours numeric)
+returns timestamp
+language sql
+stable
+as $$ select (now() + p_hours * interval '1 hour') at time zone 'America/Denver' $$;
+
+-- Plans a ride as p_actor and remembers it under p_name.
+create function pg_temp.plan(p_actor text, p_name text, p_hours numeric, p_children text[])
+returns uuid
+language plpgsql
+as $$
+declare
+  v_ride uuid;
+begin
+  perform pg_temp.act_as(p_actor);
+  select (public.create_rides(
+    pg_temp.id('team'), 'To practice', pg_temp.local_in(p_hours),
+    'Maple Grove', 'Meadow Park',
+    (select array_agg(pg_temp.id(c)) from unnest(p_children) as c)
+  ))[1] into v_ride;
+  perform pg_temp.remember(p_name, v_ride);
+  return v_ride;
+end;
+$$;
