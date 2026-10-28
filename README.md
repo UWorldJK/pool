@@ -261,10 +261,16 @@ R7 is stacked on R6 and retains all production release restrictions.
 
 ## Pool visual design
 
-R8 simplifies the real account, family, schedule, assignment and handoff screens
-with native system typography, quiet surfaces and the original Pool palette.
-Secondary controls open when needed; the full week and explicit driver/guardian
-responsibilities remain visible. See the
-[reference choices, intentional differences and desktop/phone screenshots](docs/visual-parity.md).
-R8 is stacked on R7; production still requires validated, protected, PR-merged
-current `main`.
+R8 follows the v3 export (`exports/pool-v3.html`), clarified by the matching
+`sites/pool-prototype-v3/dist`, design notes and behavioral tests. DM Sans and
+Manrope, the sage sidebar, lime selection, top bar, persistent phone navigation,
+route cards and focused dialogs carry that design through the real account,
+family, circle, schedule, driving, replacement and child-handoff screens. This
+supersedes the earlier original-first, system-font simplification.
+
+See [reference decisions, necessary deviations and matching-view screenshots](docs/visual-parity.md)
+and the [parity checklist](docs/v3-parity-checklist.md). Supplied reference files,
+accounts and existing demo records are preserved. Backend and authorization
+contracts, explicit driver acceptance, each family's own child consent and
+independent receipt remain in force. R8 continues on PR #10, stacked on R7;
+production still requires validated, protected, PR-merged current `main`.

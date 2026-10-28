@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { account, family } from "./helpers.mjs";
+import { account, family, openAction, closeAction } from "./helpers.mjs";
 import { captureState } from "./presentation.mjs";
 
 async function accessible(page) {
@@ -15,6 +15,9 @@ test("R8 account, onboarding and setup reflow with accessible keyboard navigatio
   try {
     await page.setViewportSize({width:390,height:844});
     await accessible(page);
+    await expect(page.locator(".mobile-nav")).toBeVisible();
+    expect(await page.evaluate(()=>getComputedStyle(document.body).fontFamily)).toContain("DM Sans");
+    expect(await page.getByRole("heading",{level:1}).evaluate(node=>getComputedStyle(node).fontFamily)).toContain("Manrope");
     const menu=page.getByRole("button",{name:"Menu",exact:false});
     await menu.focus();await page.keyboard.press("Enter");
     const dialog=page.getByRole("dialog",{name:"Your Pool"});
@@ -23,14 +26,19 @@ test("R8 account, onboarding and setup reflow with accessible keyboard navigatio
     await page.keyboard.press("Shift+Tab");await expect(dialog.getByRole("link",{name:"Plan a ride",exact:false})).toBeFocused();
     await page.keyboard.press("Tab");await expect(dialog.getByRole("button",{name:"Close navigation"})).toBeFocused();
     await page.keyboard.press("Escape");await expect(dialog).not.toBeVisible();await expect(menu).toBeFocused();
-    await menu.press("Enter");await dialog.getByRole("link",{name:"Weekly schedule",exact:true}).focus();await page.keyboard.press("Enter");
+    await menu.press("Enter");await dialog.getByRole("link",{name:"Schedule",exact:true}).focus();await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/app\/schedule$/);await expect(dialog).not.toBeVisible();
     await expect(page.getByRole("group",{name:"Full week"})).toBeVisible();
     await expect(page.locator(".week-day")).toHaveCount(7);await accessible(page);
     await page.goto("/app");await family(page,"Presentation family","Presentation guardian");
     await accessible(page);await captureState(page,"family");
-    await expect(page.locator("details").filter({has:page.locator("summary").filter({hasText:/^Create a circle$/})})).not.toHaveAttribute("open");
-    await page.locator("summary").filter({hasText:/^Create a circle$/}).click();
+    await expect(page.getByRole("dialog",{name:"Create a circle",exact:true})).not.toBeVisible();
+    const createCircle=page.getByRole("button",{name:"Create a circle",exact:true});
+    await openAction(page,"Create a circle");await accessible(page);
+    await expect(page.getByRole("button",{name:"Close Create a circle",exact:true})).toBeFocused();
+    await page.keyboard.press("Shift+Tab");await expect(page.getByRole("dialog",{name:"Create a circle",exact:true}).getByRole("button",{name:"Done",exact:true})).toBeFocused();
+    await page.keyboard.press("Escape");await expect(createCircle).toBeFocused();
+    await openAction(page,"Create a circle");
     await page.getByLabel("Circle name").fill("Presentation circle");await page.getByRole("button",{name:"Create circle",exact:true}).click();
     await page.getByRole("link",{name:"Open saved membership"}).click();await accessible(page);await captureState(page,"circle");
     await page.goto("/app/children");await page.getByLabel("Child display name").fill("Presentation child");await page.getByRole("button",{name:"Save child",exact:true}).click();
@@ -46,10 +54,13 @@ test("R8 account, onboarding and setup reflow with accessible keyboard navigatio
     await page.setViewportSize({width:320,height:800});await page.goto("/app");await accessible(page);
     await page.keyboard.press("Tab");await expect(page.getByRole("link",{name:"Skip to main content"})).toBeFocused();await page.keyboard.press("Enter");await expect(page.locator("#main-content")).toBeFocused();
     await page.setViewportSize({width:1440,height:1000});
-    await page.getByRole("link",{name:"Families and circles",exact:true}).focus();await expect(page.getByRole("link",{name:"Families and circles",exact:true})).toHaveAttribute("aria-current","page");
-    await page.goto("/app");await page.locator("summary").filter({hasText:/^Create a family$/}).click();await page.getByLabel("Family name",{exact:true}).fill(" ");await page.getByLabel("Your display name").fill("Presentation guardian");
+    await page.getByRole("link",{name:"My circle",exact:true}).focus();await expect(page.getByRole("link",{name:"My circle",exact:true})).toHaveAttribute("aria-current","page");
+    await page.goto("/app");await openAction(page,"Create a family");await page.getByLabel("Family name",{exact:true}).fill(" ");await page.getByLabel("Your display name").fill("Presentation guardian");
     await page.getByRole("button",{name:"Create family",exact:true}).click();await expect(page.locator("#main-content [role=alert]")).toBeVisible();
     await expect(page.locator(".form-outcome").filter({has:page.getByRole("alert")})).toBeFocused();await accessible(page);
+    await page.keyboard.press("Escape");await expect(page.getByRole("button",{name:"Create a family",exact:true})).toBeFocused();
+    await openAction(page,"Create a family");await expect(page.getByRole("dialog",{name:"Create a family",exact:true}).getByRole("alert")).toBeVisible();
+    await closeAction(page,"Create a family");
     await page.emulateMedia({colorScheme:"dark"});expect(await page.evaluate(()=>getComputedStyle(document.documentElement).colorScheme)).toBe("light");await accessible(page);
     await page.emulateMedia({colorScheme:"light"});
     for(const path of ["/sign-in","/sign-up","/forgot-password","/reset-password"]) {

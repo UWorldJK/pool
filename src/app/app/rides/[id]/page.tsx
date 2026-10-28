@@ -29,8 +29,7 @@ export default async function RideDetail({ params, searchParams }: { params: Pro
     const progress = exact.data && <HandoffPanel rideId={id} revision={status.ride_revision} timezone={status.timezone} isDriver={status.is_current_driver} cancelled={Boolean(status.cancelled_at)} />;
     return <><PageHeading eyebrow="Your driving" title={`${status.pickup_summary} → ${status.destination_summary}`} /><div className="ride-time"><p>Pickup: {rideTime(status.starts_at,status.timezone)}</p><p>Drop-off: {rideTime(status.ends_at,status.timezone)}</p></div>
       {(status.coverage === "confirmed" || trip.data?.completed_at) && <p className="ride-current-driver">{trip.data?.completed_at ? "Trip driver" : "Current driver"} · {status.current_driver_name || status.driver_name}</p>}
-      {exact.data ? <Disclosure title="Pickup and destination" open={!frozen}><RouteSummary pickup={exact.data.pickup} destination={exact.data.destination} /></Disclosure> : <p>Only the minimal driver proposal is available. Exact private locations become available after confirmation.</p>}
-      <Disclosure title="Driver and vehicle" open={!frozen}><DriverPanel status={status} showLink={false} /></Disclosure>{progress}
+      <div className="ride-overview"><section className="panel"><h2>Pickup and destination</h2>{exact.data ? <RouteSummary pickup={exact.data.pickup} destination={exact.data.destination} /> : <p>Only the minimal driver proposal is available. Exact private locations become available after confirmation.</p>}</section><DriverPanel status={status} showLink={false} /></div>{progress}
       {exact.data && <Disclosure title="Enrolled riders"><ul>{enrolled.data.map((c) => <li key={c.child_id}>{c.display_name} · {c.seat_requirement}</li>)}</ul></Disclosure>}</>;
 
   }
@@ -51,22 +50,22 @@ export default async function RideDetail({ params, searchParams }: { params: Pro
   const familyName = (familyId: string) => families.data.find((f) => f.id === familyId)?.name ?? roster.data.find((f) => f.family_id === familyId)?.family_name ?? "Invited circle family";
   const visibleCoverage = !status && offer.status !== "joined" ? "Join with your family to view driver status" : coverageLabel(status?.coverage);
   const currentDriver = status?.coverage === "confirmed" || trip.data?.completed_at ? status?.current_driver_name || status?.driver_name : null;
-  const driverPanel = status && <Disclosure title="Driver and vehicle" open={!frozen}><DriverPanel status={status} showLink={false} /></Disclosure>;
+  const driverPanel = status && <DriverPanel status={status} showLink={false} />;
   const handoffs = locations.data && <HandoffPanel rideId={id} revision={offer.revision} timezone={offer.timezone} isDriver={Boolean(status?.is_current_driver)} cancelled={Boolean(offer.cancelled_at)} />;
   const ownRiders = riders.data.filter((r) => r.family_id === offer.family_id);
   const needsConsent = ownRiders.some((r) => !consents.data.some((c) => c.child_id === r.child_id && !c.revoked_at));
   return <>
     <PageHeading eyebrow={offer.direction === "return" ? "Return ride" : "Outbound ride"} title={`${offer.pickup_summary} → ${offer.destination_summary}`} />
     <div className="ride-time"><p>Pickup: <time dateTime={offer.starts_at}>{rideTime(offer.starts_at, offer.timezone)}</time></p><p>Drop-off: <time dateTime={offer.ends_at}>{rideTime(offer.ends_at, offer.timezone)}</time></p></div>
+    {frozen && <a className="button primary ride-next-action" href="#trip-progress">{trip.data?.completed_at ? "Review completed handoffs" : "Review pickup and handoffs"} →</a>}
     {!status && !offer.cancelled_at && <StatusBadge tone={offer.status === "joined" ? "attention" : "neutral"}>{offer.status === "joined" ? "Needs a driver" : "Private ride summary"}</StatusBadge>}
     {currentDriver && !offer.cancelled_at && <p className="ride-current-driver"><span>{trip.data?.completed_at ? "Trip driver" : "Current driver"}</span> · {currentDriver}{status?.proposal_status === "pending" && status.mode !== "initial" && " · Replacement under review"}</p>}
     {!offer.cancelled_at && !frozen && status?.proposal_status === "pending" && (status.is_driver && !status.accepted_at ? <a className="button primary ride-next-action" href={`#driver-reply-${status.ride_id}`}>Review driving request</a> : needsConsent && offer.status === "joined" ? <a className="button primary ride-next-action" href="#family-consent">Review driver for your children</a> : null)}
     {!status && <p>{visibleCoverage}</p>}
     {offers.data.length > 1 && <nav aria-label="Your family contexts">{offers.data.map((item) => <Link key={item.family_id} aria-current={item.family_id === offer.family_id ? "page" : undefined} href={`/app/rides/${id}?family=${item.family_id}`}>{familyName(item.family_id)}</Link>)}</nav>}
     {offer.cancelled_at && <p role="status" className="notice neutral">Cancelled for all families. This ride cannot be reopened.</p>}
-    {locations.data && (frozen ? <Disclosure title="Pickup and destination"><RouteSummary pickup={locations.data.pickup} destination={locations.data.destination} /></Disclosure> : <div className="panel route-panel"><RouteSummary pickup={locations.data.pickup} destination={locations.data.destination} /></div>)}
+    <div className="ride-overview"><section className="panel route-panel"><p className="eyebrow">THE RIDE PLAN</p><h2>Pickup and destination</h2>{locations.data ? <RouteSummary pickup={locations.data.pickup} destination={locations.data.destination} /> : <RouteSummary pickup={offer.pickup_summary} destination={offer.destination_summary} />}<p>Pickup: {rideTime(offer.starts_at,offer.timezone)}<br />Drop-off: {rideTime(offer.ends_at,offer.timezone)}</p><p className="section-caption">{frozen ? "Plan and responsibilities frozen after first pickup." : "The driver and each family reply separately."}</p></section>{driverPanel || <section className="panel"><h2>{offer.cancelled_at ? "Ride cancelled" : offer.status === "joined" ? "A driver is needed" : "Your family’s invitation"}</h2><p>{offer.status === "joined" ? "Nominate an available adult and vehicle. Coverage requires their acceptance and consent for every enrolled child." : "Your family chooses its own riders. Exact locations and driver details are private until you join."}</p></section>}</div>
     {!locations.data && <p>Only the minimal invitation summary is available. Join with your own child to view exact locations and riders.</p>}
-    {driverPanel}
     {!offer.cancelled_at && offer.status === "joined" && <>
       {!locked && status?.current_assignment_release_reason !== "withdrawn" && <section><h2>Choose a driver</h2><p>Each invited family must respond before nomination. The driver and families then reply separately.</p>
         {options.data.length ? <DriverForm key={`nominate-${offer.revision}`} command="proposeDriver" fields={{ ...fields,proposal_id:crypto.randomUUID() }} label="Nominate driver">
@@ -92,7 +91,7 @@ export default async function RideDetail({ params, searchParams }: { params: Pro
       </section>}
     </>}
     {handoffs}
-    {locations.data && <Disclosure title="Riders and family responses"><h2>Enrolled riders</h2>{riders.data.length ? <ul>{riders.data.map((rider) => <li key={rider.child_id}>{rider.display_name} · {rider.seat_requirement} · {familyName(rider.family_id)}</li>)}</ul> : <p>No riders currently enrolled.</p>}<h2>Family responses</h2><ul>{participation.data.map((item) => <li key={item.family_id}>{familyName(item.family_id)} · {item.status}</li>)}</ul></Disclosure>}
+    {locations.data && <section className="roster-panel"><h2>Enrolled riders</h2>{riders.data.length ? <ul>{riders.data.map((rider) => <li key={rider.child_id}>{rider.display_name} · {rider.seat_requirement} · {familyName(rider.family_id)}</li>)}</ul> : <p>No riders currently enrolled.</p>}<h2>Family responses</h2><ul>{participation.data.map((item) => <li key={item.family_id}>{familyName(item.family_id)} · {item.status}</li>)}</ul></section>}
     {status && offer.status === "joined" && <ReplacementPanel status={status} familyId={offer.family_id} revision={offer.revision} frozen={frozen} options={options.data} after={query.after_replacement} />}
     {!offer.cancelled_at && <>
       {!locked && <Disclosure title={offer.status === "joined" ? "Change your family’s riders" : "Respond for your family"} open={offer.status !== "joined"}>

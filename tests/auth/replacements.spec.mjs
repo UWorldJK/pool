@@ -1,4 +1,4 @@
-import { expandDetails, visit, refresh } from "./helpers.mjs";
+import { expandDetails, visit, refresh, openAction, closeAction } from "./helpers.mjs";
 import { captureState } from "./presentation.mjs";
 import { test,expect } from "@playwright/test";
 import { account,family,invitation,openAndCheck,password } from "./helpers.mjs";
@@ -8,7 +8,7 @@ async function join(a,b,circle,name) {
   await b.page.getByLabel("I explicitly accept this circle family membership.").check();await b.page.getByRole("button",{name:"Accept invitation",exact:true}).click();await expect(b.page.getByRole("status")).toContainText("Membership accepted");
 }
 async function child(page,name) {
-  await visit(page,"/app/children");const f=page.locator("form").filter({has:page.getByRole("button",{name:"Save child",exact:true})});await f.getByLabel("Child display name").fill(name);await f.getByLabel("Seat requirement").selectOption("booster");await f.getByRole("button",{name:"Save child",exact:true}).click();await expect(f.getByRole("status")).toContainText("Saved");
+  await visit(page,"/app/children");if(await page.getByRole("button",{name:"Add a child",exact:true}).count()) await openAction(page,"Add a child");const f=page.locator("form").filter({has:page.getByRole("button",{name:"Save child",exact:true})});await f.getByLabel("Child display name").fill(name);await f.getByLabel("Seat requirement").selectOption("booster");await f.getByRole("button",{name:"Save child",exact:true}).click();await expect(f.getByRole("status")).toContainText("Saved");
 }
 async function vehicle(page,label) {
   await visit(page,"/app/vehicles");const f=page.locator("form").filter({has:page.getByRole("button",{name:"Save vehicle",exact:true})});await f.getByLabel("Vehicle label").fill(label);await f.getByLabel("Passenger seats, excluding you").fill("3");await f.getByRole("button",{name:"Save vehicle",exact:true}).click();await expect(f.getByRole("status")).toContainText("Saved");
@@ -21,8 +21,8 @@ async function accept(page) {
   await page.getByLabel("Available passenger seats, excluding you").fill("3");await page.getByLabel("I can accommodate all 2 booster seats and 0 child seats required for these riders.").check();await page.getByLabel("I explicitly accept driving this ride with this vehicle and available passenger capacity.").check();await page.getByRole("button",{name:"Accept as driver",exact:true}).click();await expect(page.getByText("Driver acceptance: Accepted",{exact:false})).toBeVisible();
 }
 async function replacement(page,name) {
-  await expandDetails(page);
-  const f=page.locator("form").filter({has:page.getByRole("button",{name:"Request replacement",exact:true})});await f.getByLabel("Replacement driver and registered vehicle").selectOption({label:`${name} · ${name === "R7 Guardian A" ? "R7 candidate car" : "R7 original van"} · 3 passenger seats`});await f.getByLabel("I request a replacement with fresh driver acceptance and consent for every enrolled child.").check();await f.getByRole("button",{name:"Request replacement",exact:true}).focus();await page.keyboard.press("Enter");await expect(page.getByText("Replacement candidate · pending",{exact:false})).toBeVisible();
+  await expandDetails(page);await openAction(page,"Review driver change");
+  const f=page.locator("form").filter({has:page.getByRole("button",{name:"Request replacement",exact:true})});await f.getByLabel("Replacement driver and registered vehicle").selectOption({label:`${name} · ${name === "R7 Guardian A" ? "R7 candidate car" : "R7 original van"} · 3 passenger seats`});await f.getByLabel("I request a replacement with fresh driver acceptance and consent for every enrolled child.").check();await f.getByRole("button",{name:"Request replacement",exact:true}).focus();await page.keyboard.press("Enter");await expect(page.getByRole("dialog",{name:"Review driver change",exact:true}).getByRole("status")).toContainText("Saved request pending");await closeAction(page,"Review driver change");await expect(page.getByText("Replacement candidate · pending",{exact:false})).toBeVisible();
 }
 async function replayDenied(page,context,click) {
   let resolve;const captured=new Promise(r=>{resolve=r;});await page.route("**/*",async route=>{const r=route.request();if(r.method()==="POST"&&r.headers()["next-action"]){resolve({url:r.url(),data:r.postDataBuffer(),headers:r.headers()});await route.abort();}else await route.continue();});await click();const post=await captured;await page.unroute("**/*");const res=await context.request.post(post.url,{data:post.data,headers:{"content-type":post.headers["content-type"],"next-action":post.headers["next-action"],origin:"http://localhost:3100",accept:"text/x-component"}});expect(await res.text()).toContain("unavailable to this account");
@@ -32,7 +32,7 @@ test("R7 real adults preserve optional swaps, reset unavailable consent and pers
   try {
     await captureState(a.page,"empty");
     await family(a.page,"R7 family A","R7 Guardian A");await family(b.page,"R7 family B","R7 Guardian B");await family(d.page,"R7 driver family","R7 original driver");
-    await expandDetails(a.page);await a.page.getByLabel("Circle name").fill("R7 circle");await a.page.getByRole("button",{name:"Create circle",exact:true}).click();await a.page.getByRole("link",{name:"Open saved membership"}).click();await expect(a.page.getByRole("heading",{name:"R7 circle",exact:true})).toBeVisible();const circle=a.page.url();
+    await openAction(a.page,"Create a circle");await a.page.getByLabel("Circle name").fill("R7 circle");await a.page.getByRole("button",{name:"Create circle",exact:true}).click();await a.page.getByRole("link",{name:"Open saved membership"}).click();await expect(a.page.getByRole("heading",{name:"R7 circle",exact:true})).toBeVisible();const circle=a.page.url();
     await join(a,b,circle,"R7 family B");await join(a,d,circle,"R7 driver family");
     await child(a.page,"R7 child A");await child(b.page,"R7 child B");await vehicle(a.page,"R7 candidate car");await vehicle(d.page,"R7 original van");
     await visit(a.page,"/app/rides/new");for(const [label,value] of [["Pickup summary","R7 neighborhood"],["Drop-off summary","R7 activity"],["Exact pickup","Private R7 pickup"],["Exact drop-off","Private R7 destination"],["IANA timezone","UTC"],["Pickup time","2028-09-01T14:00"],["Drop-off time","2028-09-01T15:00"]])await a.page.getByLabel(label,{exact:true}).fill(value);
@@ -56,10 +56,11 @@ test("R7 real adults preserve optional swaps, reset unavailable consent and pers
     await expandDetails(a.page);await a.page.getByLabel("I cancel this nomination. An available original driver stays assigned.").check();
     await a.page.getByRole("button",{name:"Cancel driver proposal",exact:true}).click();
     await expect(a.page.getByText("Replacement candidate · cancelled",{exact:false})).toBeVisible();
+    await openAction(a.page,"Review driver change");
     const expiring=a.page.locator("form").filter({has:a.page.getByRole("button",{name:"Request replacement",exact:true})});
     await expiring.getByLabel("Replacement driver and registered vehicle").selectOption({label:"R7 Guardian A · R7 candidate car · 3 passenger seats"});
     await expiring.getByLabel("Review deadline in UTC").fill(new Date(Date.now()+6000).toISOString().slice(0,19));
-    await expiring.getByRole("checkbox").check();await expiring.getByRole("button",{name:"Request replacement",exact:true}).click();
+    await expiring.getByRole("checkbox").check();await expiring.getByRole("button",{name:"Request replacement",exact:true}).click();await expect(a.page.getByRole("dialog",{name:"Review driver change",exact:true}).getByRole("status")).toContainText("Saved request pending");await closeAction(a.page,"Review driver change");
     await expect(a.page.getByText("Replacement candidate · pending",{exact:false})).toBeVisible();
     await expect.poll(async()=>{await refresh(a.page);return a.page.getByText("Replacement candidate · expired",{exact:false}).count();},{timeout:15000}).toBe(1);
     await expect(a.page.getByText("Confirmed",{exact:true})).toBeVisible();
@@ -74,7 +75,7 @@ test("R7 real adults preserve optional swaps, reset unavailable consent and pers
     const independent=await second.newPage();await visit(independent,"/sign-in");await independent.getByLabel("Email address").fill(b.email);await independent.getByLabel("Password",{exact:true}).fill(password);await independent.getByRole("button",{name:"Sign in",exact:true}).click();await expect(independent).toHaveURL(/\/app$/);await visit(independent,ride);await expect(independent.getByText("Awaiting confirmation",{exact:true})).toBeVisible();await expect(independent.getByText("There is no confirmed driver.",{exact:false})).toBeVisible();
     const cf=independent.locator("form").filter({has:independent.getByRole("button",{name:"Approve driver for selected children",exact:true})});await cf.getByLabel("R7 child B",{exact:true}).check();await cf.getByLabel("I explicitly consent to this driver, vehicle and plan for my selected children.").check();await replayDenied(independent,a.context,()=>cf.getByRole("button",{name:"Approve driver for selected children",exact:true}).click());await visit(independent,ride);
     await independent.setViewportSize({width:390,height:844});expect(await independent.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await approve(independent,"R7 child B");await expect(independent.getByText("Confirmed",{exact:true})).toBeVisible();
-    for(const page of [a.page,b.page,independent]){await visit(page,ride);await expect(page.getByText("Confirmed",{exact:true})).toBeVisible();await expect(page.getByText("Replacement confirmed.",{exact:true})).toBeVisible();await expect(page.getByRole("heading",{name:"Replacement activity",exact:true})).toBeVisible();}
+    for(const page of [a.page,b.page,independent]){await visit(page,ride);await expect(page.getByText("Confirmed",{exact:true})).toBeVisible();await expect(page.getByText("Replacement confirmed.",{exact:true})).toBeVisible();await openAction(page,"Review driver change");await expect(page.getByRole("heading",{name:"Replacement activity",exact:true})).toBeVisible();await closeAction(page,"Review driver change");}
     // A second optional swap succeeds only with the new candidate's real acceptance and both families.
     await replacement(a.page,"R7 original driver");await visit(d.page,"/app/driving?pending=1");await d.page.getByRole("link",{name:"Open ride details",exact:true}).click();await accept(d.page);await refresh(a.page);await approve(a.page,"R7 child A");await refresh(b.page);await approve(b.page,"R7 child B");await refresh(d.page);await expect(d.page.getByText("Replacement confirmed.",{exact:true})).toBeVisible();await expect(d.page.getByText("Private R7 pickup",{exact:true})).toBeVisible();
     // An unsuccessful new swap must preserve the actual driver's completed page and history.

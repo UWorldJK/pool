@@ -1,4 +1,4 @@
-import { expandDetails, visit, refresh } from "./helpers.mjs";
+import { visit, refresh, openAction } from "./helpers.mjs";
 import { test,expect } from "@playwright/test";
 import { account,family,invitation,openAndCheck } from "./helpers.mjs";
 async function join(inviter,person,circleUrl,familyName) {
@@ -9,7 +9,7 @@ async function join(inviter,person,circleUrl,familyName) {
   await expect(person.page.getByRole("status")).toContainText("Membership accepted");
 }
 async function child(page,name) {
-  await visit(page,"/app/children");const f=page.locator("form").filter({has:page.getByRole("button",{name:"Save child",exact:true})});
+  await visit(page,"/app/children");if(await page.getByRole("button",{name:"Add a child",exact:true}).count()) await openAction(page,"Add a child");const f=page.locator("form").filter({has:page.getByRole("button",{name:"Save child",exact:true})});
   await f.getByLabel("Child display name").fill(name);await f.getByLabel("Seat requirement").selectOption("booster");
   await f.getByRole("button",{name:"Save child",exact:true}).click();await expect(f.getByRole("status")).toContainText("Saved");
 }
@@ -22,7 +22,7 @@ test("R6: independent driver and guardians persist arrival and confirm each chil
   const a=await account(browser,"r6-a"),b=await account(browser,"r6-b"),d=await account(browser,"r6-driver"),out=await account(browser,"r6-outside");
   try {
     await family(a.page,"Handoff family A","Receiving guardian A");await family(b.page,"Handoff family B","Receiving guardian B");await family(d.page,"Handoff driver family","Reporting driver");await family(out.page,"Handoff outside family","Outside guardian");
-    await expandDetails(a.page);await a.page.getByLabel("Circle name").fill("Handoff circle");await a.page.getByRole("button",{name:"Create circle",exact:true}).click();await a.page.getByRole("link",{name:"Open saved membership"}).click();await expect(a.page.getByRole("heading",{name:"Handoff circle",exact:true})).toBeVisible();const circleUrl=a.page.url();
+    await openAction(a.page,"Create a circle");await a.page.getByLabel("Circle name").fill("Handoff circle");await a.page.getByRole("button",{name:"Create circle",exact:true}).click();await a.page.getByRole("link",{name:"Open saved membership"}).click();await expect(a.page.getByRole("heading",{name:"Handoff circle",exact:true})).toBeVisible();const circleUrl=a.page.url();
     await join(a,b,circleUrl,"Handoff family B");await join(a,d,circleUrl,"Handoff driver family");
     await child(a.page,"Handoff child A");await child(b.page,"Handoff child B");
     await visit(d.page,"/app/vehicles");await d.page.getByLabel("Vehicle label").fill("Handoff van");await d.page.getByLabel("Passenger seats, excluding you").fill("3");await d.page.getByRole("button",{name:"Save vehicle",exact:true}).click();await expect(d.page.getByRole("status")).toContainText("Saved");
@@ -45,7 +45,7 @@ test("R6: independent driver and guardians persist arrival and confirm each chil
     await refresh(a.page);await expect(a.page.getByRole("button",{name:"Confirm child received",exact:true})).toHaveCount(0);await expect(a.page.getByRole("button",{name:"Cancel ride",exact:true})).toHaveCount(0);
     for(const name of ["Handoff child A","Handoff child B"]) {await report(d.page,name,"Report arrival");await expect(journey(d.page,name).getByText("Awaiting guardian receipt",{exact:true})).toBeVisible();}
     await visit(d.page,"/app/driving");await visit(d.page,url);await expect(d.page.getByText("Awaiting guardian receipt",{exact:true})).toHaveCount(2);await expect(d.page.getByRole("button",{name:"Confirm child received",exact:true})).toHaveCount(0);
-    await visit(a.page,"/app/attention");await expect(a.page.getByText("2 awaiting guardian receipt",{exact:false})).toBeVisible();await visit(a.page,url);await refresh(b.page);
+    await visit(a.page,"/app/attention");await expect(a.page.locator(".task-list").getByText("2 awaiting guardian receipt",{exact:false})).toBeVisible();await visit(a.page,url);await refresh(b.page);
     // Opening a form, checking it, navigating away and reloading never confirms receipt.
     await journey(a.page,"Handoff child A").getByLabel("I explicitly confirm that I have received Handoff child A.").check();await visit(a.page,"/app/attention");await visit(a.page,url);await expect(journey(a.page,"Handoff child A").getByText("Awaiting guardian receipt",{exact:true})).toBeVisible();
     // Real Server Action payload cannot be replayed under the driver or another family.

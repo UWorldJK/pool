@@ -1,4 +1,4 @@
-import { Disclosure } from "./presentation";
+import { ActionDialog, Avatar, Disclosure, StatusBadge } from "./presentation";
 import Link from "next/link";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
@@ -29,9 +29,9 @@ export async function ReplacementPanel({ status, familyId, revision, frozen, opt
     : { data:[],error:null };
   if (originalRiders.error) throw new Error("Current riders could not be loaded");
   const mode = assigned ? "optional_swap" : "unavailable";
-  return <Disclosure title="Change driver or review replacement history" open={Boolean(after)}><h2 id="replacement-review">Replacement requests and review</h2>
+  return <ActionDialog title="Review driver change" initialOpen={Boolean(after)}><div id="replacement-review" className="candidate"><StatusBadge tone={assigned ? "positive" : "attention"}>{status.cancelled_at ? "Ride cancelled" : frozen ? "Trip plan frozen" : assigned ? status.proposal_status === "confirmed" ? "Driver confirmed" : "Original driver remains assigned" : "Uncovered until confirmed"}</StatusBadge><div className="person-meta"><Avatar name={status.driver_name} tone="rose" /><div><strong>{status.driver_name}</strong><p>{status.proposal_status === "confirmed" ? "Confirmed driver" : "Candidate · " + status.proposal_status} · {status.vehicle_label}</p></div></div><p>{status.passenger_seats} registered passenger seats · {status.rider_count} riders</p><p>{status.accepted_at ? "Candidate accepted" : pending ? "Candidate reply needed" : "Candidate did not accept"} · Child consent: {status.consent_count} of {status.rider_count}</p>{pending && <p>Reply by {rideTime(status.deadline,status.timezone)}</p>}</div>
     <p>Share the ride with participants yourself. Each adult must open it and save their own reply.</p>
-    {frozen ? <p>Replacement is unavailable after any child’s pickup.</p> : status.cancelled_at ? <p>This ride is cancelled. Previous replacement activity is available below.</p> : pending ? <p>The current request must close before another can be nominated. Review the driver acceptance and child consent totals above; every enrolled child requires fresh consent.</p> : !status.cancelled_at && status.current_assignment_id && canRequest ? <>
+    {frozen ? <p>Replacement is unavailable after any child’s pickup.</p> : status.cancelled_at ? <p>This ride is cancelled. Previous replacement activity is available below.</p> : pending ? <p role="status">Saved request pending. The current request must close before another can be nominated. Review the driver acceptance and child consent totals above; every enrolled child requires fresh consent.</p> : !status.cancelled_at && status.current_assignment_id && canRequest ? <>
       <p>{assigned ? "Optional swap: the available current driver stays assigned until a replacement is fully confirmed. Decline, cancellation and expiry preserve that assignment." : "Unavailable driver: this ride is uncovered. Only a fresh request with the actual driver acceptance and consent for every child can restore coverage."}</p>
       <DriverForm key={`replacement-${status.proposal_id}-${status.proposal_status}`} command="requestReplacement" fields={{ proposal_id:crypto.randomUUID(),ride_id:status.ride_id,family_id:familyId,revision:String(revision),mode,original_assignment_id:status.current_assignment_id,original_assignment_revision:String(status.current_assignment_revision) }} label="Request replacement">
         <label>Replacement driver and registered vehicle<select name="driver_vehicle" required defaultValue=""><option value="" disabled>Choose a circle adult and vehicle</option>{candidates.map((v) => <option key={`${v.driver_id}-${v.driver_family_id}-${v.vehicle_id}`} value={[v.driver_id,v.driver_family_id,v.vehicle_id,v.vehicle_version].join("|")}>{v.display_name} · {v.vehicle_label} · {v.passenger_seats} passenger seats</option>)}</select></label>
@@ -41,14 +41,14 @@ export async function ReplacementPanel({ status, familyId, revision, frozen, opt
       </DriverForm>
       {!candidates.length && <p>An eligible adult must <Link href="/app/vehicles">register a vehicle</Link> first.</p>}
     </> : <p>A replacement needs a current assignment or an assignment cleared by driver withdrawal. Nominate an initial driver when there is no previous driver assignment.</p>}
-    {!!originalRiders.data.length && <><h3>Consent for the current assignment</h3><p>Your original consent for {status.current_driver_name} remains separate from this candidate request.</p>
+    {!!originalRiders.data.length && <Disclosure title="Review original driver consent"><h3>Consent for the current assignment</h3><p>Your original consent for {status.current_driver_name} remains separate from this candidate request.</p>
       <DriverForm command="revokeOwnConsent" fields={{ proposal_id:status.current_proposal_id,revision:String(status.current_proposal_revision),family_id:familyId }} label="Revoke original driver consent">
         <ChildChoices>{originalRiders.data.map((r) => ({ id:r.child_id,display_name:r.display_name }))}</ChildChoices>
         <Confirmation>I revoke consent for the current driver and leave this ride needing a driver.</Confirmation>
       </DriverForm>
-    </>}
+    </Disclosure>}
     <h3>Replacement activity</h3>{history.data.length ? <ol className="activity-list">{history.data.slice(0,25).map((e) => <li key={e.id}>{e.kind} — {e.actor_name} at <time dateTime={e.occurred_at}>{rideTime(e.occurred_at,status.timezone)}</time></li>)}</ol> : <p>No replacement requests on this page.</p>}
     {history.data.length>25 && <Link href={`/app/rides/${status.ride_id}?${new URLSearchParams({ family:familyId,after_replacement:String(history.data[24].id) })}`}>Next replacement activity</Link>}
     {after && <Link href={`/app/rides/${status.ride_id}?family=${familyId}`}>First replacement activity</Link>}
-  </Disclosure>;
+  </ActionDialog>;
 }

@@ -1,4 +1,4 @@
-import { expandDetails, visit, refresh } from "./helpers.mjs";
+import { expandDetails, visit, refresh, openAction, closeAction } from "./helpers.mjs";
 import { captureState } from "./presentation.mjs";
 import { test, expect } from "@playwright/test";
 import { account, family, invitation, openAndCheck, password } from "./helpers.mjs";
@@ -13,7 +13,7 @@ async function joinCircle(inviter, recipient, circleUrl, familyName) {
   await expect(recipient.page.getByRole("status")).toContainText("Membership accepted");
 }
 async function child(page, name) {
-  await visit(page,"/app/children");
+  await visit(page,"/app/children");if(await page.getByRole("button",{name:"Add a child",exact:true}).count()) await openAction(page,"Add a child");
   const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Save child", exact: true }) });
   await form.getByLabel("Child display name").fill(name);
   await form.getByLabel("Seat requirement").selectOption("booster");
@@ -21,7 +21,9 @@ async function child(page, name) {
   await expect(form.getByRole("status")).toContainText("Saved");
   await refresh(page);
   await expect(page.getByRole("heading", { name })).toBeVisible();
-  return page.locator('form:has(button:text-is("Update child")) input[name="child_id"]').first().inputValue();
+  await openAction(page,`Edit ${name}`);
+  const childId=await page.getByRole("dialog",{name:`Edit ${name}`,exact:true}).locator('input[name="child_id"]').inputValue();
+  await closeAction(page,`Edit ${name}`);return childId;
 }
 async function plan(page, direction) {
   await visit(page,"/app/rides/new");
@@ -78,7 +80,7 @@ test("R4 real multi-session planning, private offers, endpoint denials, enrollme
     await family(other.page, "Invited browser family", "Invited adult");
     await family(coordinator.page, "Coordinator browser family", "Coordinator adult");
     await family(outsider.page, "Unrelated browser family", "Outside adult");
-    await expandDetails(coordinator.page);await coordinator.page.getByLabel("Circle name").fill("R4 browser circle");
+    await openAction(coordinator.page,"Create a circle");await coordinator.page.getByLabel("Circle name").fill("R4 browser circle");
     await coordinator.page.getByRole("button", { name: "Create circle", exact: true }).click();
     await coordinator.page.getByRole("link", { name: "Open saved membership" }).click();
     await expect(coordinator.page.getByRole("heading", { name: "R4 browser circle", exact: true })).toBeVisible();
@@ -88,6 +90,7 @@ test("R4 real multi-session planning, private offers, endpoint denials, enrollme
     const childId = await child(creator.page, "Creator child");
     await child(other.page, "Invited child");
     // Forge an existing UI action to target a child belonging to another family.
+    await openAction(other.page,"Edit Invited child");
     const foreignForm = other.page.locator("form").filter({ has: other.page.getByRole("button", { name: "Update child", exact: true }) });
     // Wait for hydration before altering a controlled hidden field; otherwise
     // React can restore its original value and turn this denial into an own edit.

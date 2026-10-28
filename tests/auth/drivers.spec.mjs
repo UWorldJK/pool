@@ -1,4 +1,4 @@
-import { expandDetails, visit, refresh } from "./helpers.mjs";
+import { expandDetails, visit, refresh, openAction, closeAction } from "./helpers.mjs";
 import { test,expect } from "@playwright/test";
 import { account,family,invitation,openAndCheck,password } from "./helpers.mjs";
 async function join(inviter,recipient,circleUrl,familyName) {
@@ -9,19 +9,20 @@ async function join(inviter,recipient,circleUrl,familyName) {
   await expect(recipient.page.getByRole("status")).toContainText("Membership accepted");
 }
 async function addChild(page,name,seat) {
-  await visit(page,"/app/children");const f=page.locator("form").filter({has:page.getByRole("button",{name:"Save child",exact:true})});
+  await visit(page,"/app/children");if(await page.getByRole("button",{name:"Add a child",exact:true}).count()) await openAction(page,"Add a child");const f=page.locator("form").filter({has:page.getByRole("button",{name:"Save child",exact:true})});
   await f.getByLabel("Child display name").fill(name);await f.getByLabel("Seat requirement").selectOption(seat);await f.getByRole("button",{name:"Save child",exact:true}).click();
   await expect(f.getByRole("status")).toContainText("Saved");await refresh(page);
 }
 async function nominate(page,rideUrl) {
   await visit(page,rideUrl);
+  if(!await page.getByRole("button",{name:"Nominate driver",exact:true}).count()) await openAction(page,"Review driver change");
   await expect(page.getByRole("button",{name:/^(Request replacement|Nominate driver)$/})).toBeVisible();
   const replacement=page.getByRole("button",{name:"Request replacement",exact:true});
   if(await replacement.count()) {
     const form=page.locator("form").filter({has:replacement});
     await form.getByLabel("Replacement driver and registered vehicle").selectOption({label:"Dedicated driver · Journey van · 3 passenger seats"});
     await form.getByLabel("I request a replacement with fresh driver acceptance and consent for every enrolled child.").check();
-    await replacement.click();await expect(page.getByText("Awaiting confirmation",{exact:true})).toBeVisible();return;
+    await replacement.click();await expect(page.getByRole("dialog",{name:"Review driver change",exact:true}).getByRole("status")).toContainText("Saved request pending");await closeAction(page,"Review driver change");await expect(page.getByText("Awaiting confirmation",{exact:true})).toBeVisible();return;
   }
   const f=page.locator("form").filter({has:page.getByRole("button",{name:"Nominate driver",exact:true})});
   const select=f.getByLabel("Driver and registered vehicle");const option=select.locator("option").filter({hasText:"Dedicated driver · Journey van"});
@@ -54,7 +55,7 @@ test("M1: independent guardians and proposed-only driver explicitly confirm, con
   const second=await browser.newContext();
   try {
     await family(a.page,"Journey family A","Guardian A");await family(b.page,"Journey family B","Guardian B");await family(d.page,"Journey driver family","Dedicated driver");await family(outside.page,"Journey outside family","Outside adult");
-    await expandDetails(a.page);await a.page.getByLabel("Circle name").fill("M1 journey circle");await a.page.getByRole("button",{name:"Create circle",exact:true}).click();await a.page.getByRole("link",{name:"Open saved membership"}).click();await expect(a.page.getByRole("heading",{name:"M1 journey circle",exact:true})).toBeVisible();const circleUrl=a.page.url();
+    await openAction(a.page,"Create a circle");await a.page.getByLabel("Circle name").fill("M1 journey circle");await a.page.getByRole("button",{name:"Create circle",exact:true}).click();await a.page.getByRole("link",{name:"Open saved membership"}).click();await expect(a.page.getByRole("heading",{name:"M1 journey circle",exact:true})).toBeVisible();const circleUrl=a.page.url();
     await join(a,b,circleUrl,"Journey family B");await join(a,d,circleUrl,"Journey driver family");
     await addChild(a.page,"Journey A child","booster");await addChild(b.page,"Journey B child","child-seat");
     await visit(d.page,"/app/vehicles");const vehicle=d.page.locator("form").filter({has:d.page.getByRole("button",{name:"Save vehicle",exact:true})});
@@ -83,7 +84,7 @@ test("M1: independent guardians and proposed-only driver explicitly confirm, con
     await visit(a.page,"/app/schedule?date=2027-09-01&timezone=UTC");await expect(a.page.getByText("Driver confirmed",{exact:true})).toBeVisible();
     const independent=await second.newPage();await visit(independent,"/sign-in");await independent.getByLabel("Email address").fill(b.email);await independent.getByLabel("Password",{exact:true}).fill(password);await independent.getByRole("button",{name:"Sign in",exact:true}).click();await expect(independent).toHaveURL(/\/app$/);await visit(independent,rideUrl);await expect(independent.getByText("Confirmed",{exact:true})).toBeVisible();
     // Vehicle changes fail while confirmed.
-    await visit(d.page,"/app/vehicles");const update=d.page.locator("form").filter({has:d.page.getByRole("button",{name:"Update vehicle",exact:true})});await update.getByLabel("Passenger seats, excluding you").fill("2");await update.getByRole("button",{name:"Update vehicle",exact:true}).click();await expect(update.getByRole("alert")).toContainText("Resolve the current proposal");
+    await visit(d.page,"/app/vehicles");await openAction(d.page,"Edit vehicle");const update=d.page.locator("form").filter({has:d.page.getByRole("button",{name:"Update vehicle",exact:true})});await update.getByLabel("Passenger seats, excluding you").fill("2");await update.getByRole("button",{name:"Update vehicle",exact:true}).click();await expect(update.getByRole("alert")).toContainText("Resolve the current proposal");
     await visit(d.page,rideUrl);await d.page.setViewportSize({width:390,height:844});expect(await d.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     await d.page.getByLabel("I withdraw and leave this ride needing a driver.").check();await d.page.getByRole("button",{name:"Withdraw as driver",exact:true}).focus();await d.page.keyboard.press("Enter");await expect(d.page.getByText("Unassigned — needs a driver",{exact:true})).toBeVisible();await expect(d.page.getByText("111 Private M1 Pickup",{exact:true})).toHaveCount(0);
     await nominate(a.page,rideUrl);await expect(a.page.getByText("Child consents: 0 of 2",{exact:false})).toBeVisible();await refresh(d.page);await accept(d.page);await refresh(a.page);await consent(a.page,"Journey A child");await refresh(b.page);await consent(b.page,"Journey B child");

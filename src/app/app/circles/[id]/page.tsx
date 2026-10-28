@@ -1,4 +1,4 @@
-import { PageHeading, Disclosure } from "../../presentation";
+import { PageHeading, Disclosure, ActionDialog, Avatar } from "../../presentation";
 import { notFound } from "next/navigation";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import { verifiedUser } from "@/lib/auth/identity";
@@ -24,15 +24,15 @@ export default async function CirclePage({ params }: { params: Promise<{ id: str
     <PageHeading title={currentCircle.name} />
     <h2>Families in this circle</h2>
     <ul>{roster.data.map((family) => <li key={family.family_id}>
-      {family.family_name}{family.family_id === currentCircle.coordinator_family_id ? " (coordinating family)" : ""}
+      <div className="person-meta"><Avatar name={family.family_name} /><strong>{family.family_name}</strong></div>{family.family_id === currentCircle.coordinator_family_id ? " (coordinating family)" : ""}
       {(coordinator || owned.data.some((member) => member.family_id === family.family_id)) && family.family_id !== currentCircle.coordinator_family_id && <Disclosure title={coordinator ? "Remove family" : "Leave circle"}><MembershipForm command="remove-family" fields={{ circle_id: id, family_id: family.family_id }} label={coordinator ? "Remove family from circle" : "Leave circle"}>
         <label className="checkbox-label"><input type="checkbox" name="confirm" value="yes" required />I confirm this family’s removal from the circle.</label>
       </MembershipForm></Disclosure>}
     </li>)}</ul>
 
     {coordinator && <>
-      <Disclosure title="Invite another family"><p>Invite an adult to join this circle with their own family. Share the invitation link yourself.</p>
-      <InviteForm kind="circle" scopeId={id} /></Disclosure><InvitationList kind="circle" scopeId={id} />
+      <ActionDialog title="Invite another family"><p>Invite an adult to join this circle with their own family. Share the invitation link yourself.</p>
+      <InviteForm kind="circle" scopeId={id} /></ActionDialog><InvitationList kind="circle" scopeId={id} />
     </>}
   </>;
 }

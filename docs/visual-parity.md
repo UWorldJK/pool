@@ -1,115 +1,139 @@
-# R8 — A calmer Pool
+# R8 — Pool v3 parity correction
 
 PR [#10](https://github.com/UWorldJK/pool/pull/10) continues on
-`lkluge/web-visual-parity`, based on R7 `0bab9a3`
-([PR #9](https://github.com/UWorldJK/pool/pull/9)). Production remains restricted
-to validated, protected, PR-merged current `main`. This is presentation work:
-no schema, API, RPC, authorization, server-action or release-policy changes.
-CI pins Ubuntu 24.04 because the pinned Playwright version cannot install on
-GitHub’s migrated Ubuntu 26.04 runner. Required checks and release gates are retained.
+`lkluge/web-visual-parity`, stacked on R7 `0bab9a3`. This corrects the
+original-first/system-font simplification; it is not a new design direction.
+Production remains restricted to validated, protected, PR-merged current `main`.
+No schema, API, RPC, authorization, server-action or release-policy changes.
 
-## Design and interaction references
+## Reference authority
 
-The original `sites/pool-prototype/dist` is the primary visual reference: Pool's
-mark, restrained green, warm ink, light canvas, white surfaces, route markers,
-soft status fills, balanced spacing and calm navigation. The final design uses
-native system typography and fewer visible controls. It preserves the original's
-character without reproducing every panel or its sample-data claims.
+`exports/pool-v3.html` is the visual source of truth. The matching
+`sites/pool-prototype-v3/dist`, `DESIGN-NOTES.md` and six behavioral tests clarify
+rendering and interactions. The standalone export's malformed initial font import
+is preserved; the distribution establishes the intended DM Sans/Manrope rendering.
+All 90 supplied reference files were checksum-verified unchanged. The original
+`sites/pool-prototype/dist` is secondary historical context.
 
-`sites/pool-prototype-v3/dist`, `DESIGN-NOTES.md`, its six behavioral tests,
-`exports/pool-v3.html`, and the roadmap's prototype-conflict table informed the
-interaction review. The export has a malformed initial font import; it remains
-preserved as supplied. The prototype's browser-storage logic, simulations,
-automatic approvals and sample capabilities were not transplanted. Reference
-files, local README edits, accounts and existing demo data remain intact.
+Before editing, the export, distribution and application at `96fe52c` were
+rendered and inspected at **1440×1000** and **390×844**. The
+[short parity checklist](v3-parity-checklist.md) records concrete differences.
+The local backend was started normally from its preserved volumes. Accounts,
+families and demo rides were neither reset, reseeded nor mutated for comparison.
 
-## Presentation changes
+## Corrected presentation and interactions
 
-- Four main destinations: needs attention, the weekly schedule, families/circles
-  and driving. Children, vehicles and invitations remain available in context.
-  Account details and sign-out sit behind Account. Phone navigation retains a
-  native modal dialog, trapped focus, Escape and focus restoration.
-- Existing memberships lead the home screen. Family creation is prominent for
-  an empty account and expandable for an established family. Removal, editing,
-  invitation history and other infrequent controls open on request.
-- The schedule retains all seven days and both directions. Compact ride rows
-  show one route, pickup/end times, actual driver/coverage and outstanding
-  replies. A past pickup never becomes a completion claim. Week and timezone
-  controls open from the week toolbar.
-- Ride pages lead with route, time, actual current driver and an explicit review
-  link when a reply is needed. Active trips bring per-child handoffs forward.
-  The adult's own family's children appear first and keep their position through
-  saved reports; each child's completion remains independent. Historical report times stay available.
-- Planning groups route, time and riders. Repeated-hour options open only when
-  needed. Replacement deadlines use a native UTC date/time input while sending
-  the same explicit UTC `deadline` value to the existing action.
-- Native expandable sections retain their open state across revalidation so a
-  save or error cannot hide its own result. Consent, acceptance and receipt
-  still require the existing explicit checkboxes and authenticated submissions.
+- Locally served DM Sans body type and Manrope headings, v3 font weights,
+  sage canvas/sidebar, lime selected navigation, green/amber status pills,
+  232px sidebar, 85px desktop top bar, content insets and 15px cards.
+- Persistent phone navigation follows the four v3 destinations. Today maps to
+  the real attention queue; Driving maps to the implemented driver inbox/history.
+  Family setup, children, vehicles and invitations remain directly reachable.
+  The menu supplies the full navigation on phones; account and sign-out are in
+  the top bar. Circle context uses persisted membership, with a generic label
+  when multiple circles exist.
+- Today leads with a real unfinished trip, actual driver and independent handoff
+  responsibility. The prototype map area becomes a saved-status/responsibility
+  panel. Attention tasks and upcoming confirmed rides use their actual records.
+- Schedule restores seven v3-style date tiles and two-column route cards with
+  date tiles, route markers, avatars, real pickup/end times, current driver,
+  explicit coverage and pending acceptance/child-consent totals. All days and
+  both directions remain visible; the current day is highlighted without
+  pretending that a time in the past proves completion.
+- Ride details keep authorized pickup/drop-off, actual assignment, candidate
+  identity, registered/offered seats, restraints and consent totals visible.
+  A clear primary link brings active handoffs into view. Each child's status,
+  recipient and explicit saved report remain independent and stable in order.
+- Setup cards and avatars extend v3 to real families, guardians, circles,
+  children and vehicles. Focused native dialogs handle create/edit/invite,
+  replacement review and week/timezone choice. Closing a dialog submits nothing.
+  Keyboard trapping, Escape, focus restoration and retained edits/error results
+  are verified. First-time onboarding keeps its form and saved outcome mounted
+  through revalidation instead of hiding it when the first record appears.
+- Planning groups real route/privacy fields, times/timezone and riders in a
+  bounded layout with paired fields, v3 inputs and explicit family selection.
+  Authentication, recovery, loading, empty and error views share the same tokens.
 
-## Important distinctions retained
+## Necessary deviations and boundaries
 
-| State or boundary | Presentation |
+| V3 element | Working application |
 | --- | --- |
-| Nomination versus coverage | Proposals identify the actual candidate and vehicle; acceptance and child-consent totals remain separate. Unconfirmed proposals are explicitly uncovered. |
-| Optional swap | The available original driver stays visibly assigned until the replacement is fully confirmed. Candidate vehicle data is labeled as candidate data. |
-| Driver unavailable | No released driver is presented as current coverage. Decline, cancellation and expiry leave the ride uncovered until a fresh request completes. |
-| Closed optional request | Declined, cancelled and expired candidate history stays distinct from the still-available original assignment. |
-| Arrival | Awaiting guardian receipt persists. Arrival never implies receipt or whole-ride completion. |
-| Child completion | Every child has their own terminal handoff status; other children remain awaiting receipt. |
-| Authority | The same verified public-key session, RLS projections and authenticated actions govern every read and write. Disclosures do not grant access. |
-| Private invitation/proposal | Coarse route and necessary seat information only. Missing private driver data is not evidence that an unjoined ride has no driver. |
-| Unsupported features | No GPS, ETA, maps, notification delivery, standing driver approval, simulated consent or automatic receipt. |
+| Map, location freshness and ETA | Omitted. A meaningful trip/responsibility summary uses the same hero layout; reports are explicitly manual and require reload. |
+| Contact, notification, prototype and theme controls | No unsupported controls or simulated delivery. The verified light palette is used consistently. |
+| One sample family/child | Real authorized families, guardians and independent child journeys. No sample identity, approval count, clock or vehicle assumptions. |
+| Team-wide/standing approval | Real driver acceptance and each family's explicit consent for its own children, bound to the saved plan. Joining a circle grants no blanket consent. |
+| Original versus replacement vehicle | The projection supplies the original driver's name and latest candidate vehicle, not a separate original-vehicle snapshot. Candidate vehicles are labeled explicitly; absent data is never invented. |
+| Replacement and unavailable driver | Optional swaps preserve the available original driver. Unavailable rides stay uncovered after decline, cancellation or expiry until actual acceptance and every required child consent complete. |
+| Arrival and completion | Arrival awaits designated guardian receipt. Every child completes independently; only the final receipt completes the ride. |
+| Planning dialog/day filter | Real route summaries and private locations, end time, timezone, rider selection and invitation authority require a fuller planning page. The seven-day tally retains full-week visibility rather than hiding other days. Focused smaller mutations use dialogs. |
+| Private invitation/proposed-only driver | Existing minimal projections remain intact. Joining/confirmation is required before exact private trip details are shown. |
 
-The current `driver_status` contract supplies the latest candidate vehicle and
-original-driver name, but no separate original-vehicle snapshot during a swap.
-The UI labels the candidate vehicle explicitly and does not invent missing data.
-Native system typography replaces the earlier R8 font use; the preserved local
-font asset and license are no longer requested by the UI.
+The prototype's browser storage, simulated replies, automatic approvals and sample
+capabilities are never imported. Informational history, daylight-saving choices
+and destructive confirmation steps can still use native disclosures; primary
+route, driver and consent information is no longer hidden wholesale.
 
-## Comparable screenshots
+## Matching-view comparisons
 
-The sets below use the **same saved local demo records and Bob's account**, with
-no ride mutations, reseeding or database reset. Before is commit `9337100`, served
-from a temporary snapshot; after is the revised PR. Each view starts at the top
-with its default disclosure state. Desktop is **1440×1000** and phone is
-**390×844**; saved JPEG dimensions were checked. Fictional demo names and dates
-are intentionally identical. Auth views use empty fields. The older
-`r8-screenshots/` evidence remains preserved and is not overwritten.
+[Open the side-by-side comparison viewer](v3-comparison.html). The reference uses
+its supplied fictional records; application before/after views use the **same
+persisted Bob account and demo records**, without mutations. Auth fields are
+empty. Each application view starts at the top with its default UI state.
+Older `r8-screenshots/` and `simplification-screenshots/` remain preserved.
 
-| View | Desktop before / after | Phone before / after |
+| Reference | Desktop | Phone |
 | --- | --- | --- |
-| Families and circles | [Before](simplification-screenshots/before/families-desktop.jpg) · [After](simplification-screenshots/after/families-desktop.jpg) | [Before](simplification-screenshots/before/families-phone.jpg) · [After](simplification-screenshots/after/families-phone.jpg) |
-| Family management | [Before](simplification-screenshots/before/family-desktop.jpg) · [After](simplification-screenshots/after/family-desktop.jpg) | [Before](simplification-screenshots/before/family-phone.jpg) · [After](simplification-screenshots/after/family-phone.jpg) |
-| Circle management | [Before](simplification-screenshots/before/circle-desktop.jpg) · [After](simplification-screenshots/after/circle-desktop.jpg) | [Before](simplification-screenshots/before/circle-phone.jpg) · [After](simplification-screenshots/after/circle-phone.jpg) |
-| Children | [Before](simplification-screenshots/before/children-desktop.jpg) · [After](simplification-screenshots/after/children-desktop.jpg) | [Before](simplification-screenshots/before/children-phone.jpg) · [After](simplification-screenshots/after/children-phone.jpg) |
-| Vehicles | [Before](simplification-screenshots/before/vehicles-desktop.jpg) · [After](simplification-screenshots/after/vehicles-desktop.jpg) | [Before](simplification-screenshots/before/vehicles-phone.jpg) · [After](simplification-screenshots/after/vehicles-phone.jpg) |
-| Planning | [Before](simplification-screenshots/before/planning-desktop.jpg) · [After](simplification-screenshots/after/planning-desktop.jpg) | [Before](simplification-screenshots/before/planning-phone.jpg) · [After](simplification-screenshots/after/planning-phone.jpg) |
-| Weekly schedule | [Before](simplification-screenshots/before/schedule-desktop.jpg) · [After](simplification-screenshots/after/schedule-desktop.jpg) | [Before](simplification-screenshots/before/schedule-phone.jpg) · [After](simplification-screenshots/after/schedule-phone.jpg) |
-| Needs attention | [Before](simplification-screenshots/before/attention-desktop.jpg) · [After](simplification-screenshots/after/attention-desktop.jpg) | [Before](simplification-screenshots/before/attention-phone.jpg) · [After](simplification-screenshots/after/attention-phone.jpg) |
-| Needs a driver | [Before](simplification-screenshots/before/needs-driver-desktop.jpg) · [After](simplification-screenshots/after/needs-driver-desktop.jpg) | [Before](simplification-screenshots/before/needs-driver-phone.jpg) · [After](simplification-screenshots/after/needs-driver-phone.jpg) |
-| Driver reply pending | [Before](simplification-screenshots/before/pending-desktop.jpg) · [After](simplification-screenshots/after/pending-desktop.jpg) | [Before](simplification-screenshots/before/pending-phone.jpg) · [After](simplification-screenshots/after/pending-phone.jpg) |
-| Confirmed | [Before](simplification-screenshots/before/confirmed-desktop.jpg) · [After](simplification-screenshots/after/confirmed-desktop.jpg) | [Before](simplification-screenshots/before/confirmed-phone.jpg) · [After](simplification-screenshots/after/confirmed-phone.jpg) |
-| Optional replacement | [Before](simplification-screenshots/before/replacement-desktop.jpg) · [After](simplification-screenshots/after/replacement-desktop.jpg) | [Before](simplification-screenshots/before/replacement-phone.jpg) · [After](simplification-screenshots/after/replacement-phone.jpg) |
-| Unavailable driver | [Before](simplification-screenshots/before/unavailable-desktop.jpg) · [After](simplification-screenshots/after/unavailable-desktop.jpg) | [Before](simplification-screenshots/before/unavailable-phone.jpg) · [After](simplification-screenshots/after/unavailable-phone.jpg) |
-| Declined | [Before](simplification-screenshots/before/declined-desktop.jpg) · [After](simplification-screenshots/after/declined-desktop.jpg) | [Before](simplification-screenshots/before/declined-phone.jpg) · [After](simplification-screenshots/after/declined-phone.jpg) |
-| Expired optional swap | [Before](simplification-screenshots/before/expired-desktop.jpg) · [After](simplification-screenshots/after/expired-desktop.jpg) | [Before](simplification-screenshots/before/expired-phone.jpg) · [After](simplification-screenshots/after/expired-phone.jpg) |
-| Cancelled ride | [Before](simplification-screenshots/before/cancelled-desktop.jpg) · [After](simplification-screenshots/after/cancelled-desktop.jpg) | [Before](simplification-screenshots/before/cancelled-phone.jpg) · [After](simplification-screenshots/after/cancelled-phone.jpg) |
-| Picked up | [Before](simplification-screenshots/before/picked-up-desktop.jpg) · [After](simplification-screenshots/after/picked-up-desktop.jpg) | [Before](simplification-screenshots/before/picked-up-phone.jpg) · [After](simplification-screenshots/after/picked-up-phone.jpg) |
-| Arrival awaiting receipt | [Before](simplification-screenshots/before/awaiting-receipt-desktop.jpg) · [After](simplification-screenshots/after/awaiting-receipt-desktop.jpg) | [Before](simplification-screenshots/before/awaiting-receipt-phone.jpg) · [After](simplification-screenshots/after/awaiting-receipt-phone.jpg) |
-| Completed | [Before](simplification-screenshots/before/completed-desktop.jpg) · [After](simplification-screenshots/after/completed-desktop.jpg) | [Before](simplification-screenshots/before/completed-phone.jpg) · [After](simplification-screenshots/after/completed-phone.jpg) |
-| Authentication | [Before](simplification-screenshots/before/authentication-desktop.jpg) · [After](simplification-screenshots/after/authentication-desktop.jpg) | [Before](simplification-screenshots/before/authentication-phone.jpg) · [After](simplification-screenshots/after/authentication-phone.jpg) |
+| Supplied export, unchanged | [Export](v3-screenshots/reference/export-desktop.jpg) | [Export](v3-screenshots/reference/export-phone.jpg) |
+| V3 intended rendering | [Today](v3-screenshots/reference/v3-desktop.jpg) | [Today](v3-screenshots/reference/v3-phone.jpg) |
+| V3 schedule | [Schedule](v3-screenshots/reference/schedule-desktop.jpg) | [Schedule](v3-screenshots/reference/schedule-phone.jpg) |
+| V3 circle | [Circle](v3-screenshots/reference/circle-desktop.jpg) | [Circle](v3-screenshots/reference/circle-phone.jpg) |
+| V3 planning dialog | [Dialog](v3-screenshots/reference/planning-dialog-desktop.jpg) | [Dialog](v3-screenshots/reference/planning-dialog-phone.jpg) |
 
-The [expanded phone replacement review](simplification-screenshots/after/replacement-review-phone.jpg) shows the candidate and explicit per-child selection; opening it does not save consent.
+| Application view | Desktop before / after | Phone before / after |
+| --- | --- | --- |
+| Families and circles | [Before](v3-screenshots/before/families-desktop.jpg) · [After](v3-screenshots/after/families-desktop.jpg) | [Before](v3-screenshots/before/families-phone.jpg) · [After](v3-screenshots/after/families-phone.jpg) |
+| Family management | [Before](v3-screenshots/before/family-desktop.jpg) · [After](v3-screenshots/after/family-desktop.jpg) | [Before](v3-screenshots/before/family-phone.jpg) · [After](v3-screenshots/after/family-phone.jpg) |
+| Circle management | [Before](v3-screenshots/before/circle-desktop.jpg) · [After](v3-screenshots/after/circle-desktop.jpg) | [Before](v3-screenshots/before/circle-phone.jpg) · [After](v3-screenshots/after/circle-phone.jpg) |
+| Children | [Before](v3-screenshots/before/children-desktop.jpg) · [After](v3-screenshots/after/children-desktop.jpg) | [Before](v3-screenshots/before/children-phone.jpg) · [After](v3-screenshots/after/children-phone.jpg) |
+| Vehicles | [Before](v3-screenshots/before/vehicles-desktop.jpg) · [After](v3-screenshots/after/vehicles-desktop.jpg) | [Before](v3-screenshots/before/vehicles-phone.jpg) · [After](v3-screenshots/after/vehicles-phone.jpg) |
+| Planning | [Before](v3-screenshots/before/planning-desktop.jpg) · [After](v3-screenshots/after/planning-desktop.jpg) | [Before](v3-screenshots/before/planning-phone.jpg) · [After](v3-screenshots/after/planning-phone.jpg) |
+| Schedule | [Before](v3-screenshots/before/schedule-desktop.jpg) · [After](v3-screenshots/after/schedule-desktop.jpg) | [Before](v3-screenshots/before/schedule-phone.jpg) · [After](v3-screenshots/after/schedule-phone.jpg) |
+| Today / attention | [Before](v3-screenshots/before/attention-desktop.jpg) · [After](v3-screenshots/after/attention-desktop.jpg) | [Before](v3-screenshots/before/attention-phone.jpg) · [After](v3-screenshots/after/attention-phone.jpg) |
+| Uncovered | [Before](v3-screenshots/before/needs-driver-desktop.jpg) · [After](v3-screenshots/after/needs-driver-desktop.jpg) | [Before](v3-screenshots/before/needs-driver-phone.jpg) · [After](v3-screenshots/after/needs-driver-phone.jpg) |
+| Driver reply pending | [Before](v3-screenshots/before/driver-reply-desktop.jpg) · [After](v3-screenshots/after/driver-reply-desktop.jpg) | [Before](v3-screenshots/before/driver-reply-phone.jpg) · [After](v3-screenshots/after/driver-reply-phone.jpg) |
+| Confirmed | [Before](v3-screenshots/before/confirmed-desktop.jpg) · [After](v3-screenshots/after/confirmed-desktop.jpg) | [Before](v3-screenshots/before/confirmed-phone.jpg) · [After](v3-screenshots/after/confirmed-phone.jpg) |
+| Optional replacement | [Before](v3-screenshots/before/optional-swap-desktop.jpg) · [After](v3-screenshots/after/optional-swap-desktop.jpg) | [Before](v3-screenshots/before/optional-swap-phone.jpg) · [After](v3-screenshots/after/optional-swap-phone.jpg) |
+| Unavailable driver | [Before](v3-screenshots/before/unavailable-desktop.jpg) · [After](v3-screenshots/after/unavailable-desktop.jpg) | [Before](v3-screenshots/before/unavailable-phone.jpg) · [After](v3-screenshots/after/unavailable-phone.jpg) |
+| Declined | [Before](v3-screenshots/before/declined-desktop.jpg) · [After](v3-screenshots/after/declined-desktop.jpg) | [Before](v3-screenshots/before/declined-phone.jpg) · [After](v3-screenshots/after/declined-phone.jpg) |
+| Expired optional swap | [Before](v3-screenshots/before/expired-swap-desktop.jpg) · [After](v3-screenshots/after/expired-swap-desktop.jpg) | [Before](v3-screenshots/before/expired-swap-phone.jpg) · [After](v3-screenshots/after/expired-swap-phone.jpg) |
+| Cancelled | [Before](v3-screenshots/before/cancelled-desktop.jpg) · [After](v3-screenshots/after/cancelled-desktop.jpg) | [Before](v3-screenshots/before/cancelled-phone.jpg) · [After](v3-screenshots/after/cancelled-phone.jpg) |
+| Picked up | [Before](v3-screenshots/before/picked-up-desktop.jpg) · [After](v3-screenshots/after/picked-up-desktop.jpg) | [Before](v3-screenshots/before/picked-up-phone.jpg) · [After](v3-screenshots/after/picked-up-phone.jpg) |
+| Arrival awaiting receipt | [Before](v3-screenshots/before/awaiting-receipt-desktop.jpg) · [After](v3-screenshots/after/awaiting-receipt-desktop.jpg) | [Before](v3-screenshots/before/awaiting-receipt-phone.jpg) · [After](v3-screenshots/after/awaiting-receipt-phone.jpg) |
+| Completed | [Before](v3-screenshots/before/completed-desktop.jpg) · [After](v3-screenshots/after/completed-desktop.jpg) | [Before](v3-screenshots/before/completed-phone.jpg) · [After](v3-screenshots/after/completed-phone.jpg) |
+| Authentication | [Before](v3-screenshots/before/authentication-desktop.jpg) · [After](v3-screenshots/after/authentication-desktop.jpg) | [Before](v3-screenshots/before/authentication-phone.jpg) · [After](v3-screenshots/after/authentication-phone.jpg) |
 
-## Validation
+[Replacement dialog](v3-screenshots/after/replacement-dialog-phone.jpg) ·
+[Child dialog](v3-screenshots/after/child-dialog-phone.jpg) ·
+[Family dialog](v3-screenshots/after/family-dialog-phone.jpg).
 
-The browser suite creates a disposable backend on ports 55320–55329; it never
-resets the normal Pool backend. Functional journeys open secondary controls using
-their native disclosure UI. Dedicated presentation checks cover default layouts,
-keyboard navigation and save/error visibility. Accessibility assertions include
-axe, 320px reflow, desktop/phone layouts and 44px buttons, checkbox labels and
-disclosure targets. These checks do not constitute a full screen-reader audit.
+## Validation and review
 
-Validation results and the focused Codex review are recorded in PR #10. Hosted
-delivery is not claimed. No merge or production release is part of this work.
+The saved demo views were checked with axe at desktop/phone sizes and for 320px
+reflow, including uncovered, pending, confirmed, replacement, declined, expired,
+cancelled, picked-up, awaiting-receipt and completed states. Dialog captures were
+also checked. Browser journeys exercise real independent adults, keyboard/focus,
+explicit consent, unauthorized action replay and save/error visibility.
+
+The existing test harness owns a separate disposable backend on ports
+55320–55329. Its clean/upgrade and authorization tests never reset the user's
+normal Pool backend. Node 24 lint/types, 72 unit regressions and production build,
+Compose validation and the production container smoke have passed. The final full
+local run passed all **12 browser journeys** (5.0 minutes), including independent
+child receipt and removal of completed rides from the upcoming queue. The six
+supplied v3 behavioral tests also pass; those tests are reference evidence, not
+proof of application authorization. Final journey/CI results and the focused
+Codex review are recorded in PR #10; no hosted delivery or full screen-reader
+audit is claimed.
+
+The app is left running at [localhost:3000](http://localhost:3000) for user inspection. No merge,
+release, deployment, force-push or history rewrite is part of this work.

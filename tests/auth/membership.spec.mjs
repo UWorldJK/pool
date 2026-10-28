@@ -1,4 +1,4 @@
-import { expandDetails, visit, refresh } from "./helpers.mjs";
+import { visit, refresh, openAction } from "./helpers.mjs";
 import { test, expect } from "@playwright/test";
 import { account, family, invitation, openAndCheck } from "./helpers.mjs";
 
@@ -9,7 +9,7 @@ test("two real families and a guardian use manual invitations, explicit acceptan
   try {
     const ownerFamilyUrl = await family(owner.page, "Oak browser family", "Oak adult");
     const otherFamilyUrl = await family(other.page, "Elm browser family", "Elm adult");
-    await expandDetails(owner.page);await owner.page.getByLabel("Circle name").fill("Morning browser circle");
+    await openAction(owner.page,"Create a circle");await owner.page.getByLabel("Circle name").fill("Morning browser circle");
     await owner.page.getByRole("button", { name: "Create circle", exact: true }).click();
     await owner.page.getByRole("link", { name: "Open saved membership" }).click();
     await expect(owner.page.getByRole("heading", { level: 1 })).toHaveText("Morning browser circle");
