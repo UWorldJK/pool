@@ -27,6 +27,7 @@ export async function account(browser, label) {
 }
 export async function family(page, name, display) {
   await page.goto("/app");
+  await expandDetails(page);
   await page.getByLabel("Family name", { exact: true }).fill(name);
   await page.getByLabel("Your display name").fill(display);
   await page.getByRole("button", { name: "Create family", exact: true }).click();
@@ -35,6 +36,7 @@ export async function family(page, name, display) {
   return page.url();
 }
 export async function invitation(page, email, kind) {
+  await expandDetails(page);
   await page.getByLabel("Recipient email").fill(email);
   await page.getByRole("button", { name: `Create ${kind} invitation`, exact: true }).click();
   await expect(page.getByLabel("Manual invitation link")).toBeVisible();
@@ -50,4 +52,22 @@ export async function openAndCheck(page, link) {
   await expect.poll(async () => (await page.getByLabel("Invitation link", { exact: true }).inputValue()) === link).toBe(true);
   await expect(page.getByRole("button", { name: "Accept invitation", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Check invitation", exact: true }).click();
+}
+
+// Functional journeys deliberately open secondary controls through their native
+// disclosure UI. Presentation tests separately verify the quiet default state.
+export async function expandDetails(page) {
+  await page.getByRole("heading", { level: 1 }).waitFor();
+  const closed = page.locator("details:not([open]) > summary:visible");
+  while (await closed.count()) await closed.first().click();
+}
+export async function visit(page, url) {
+  const response = await page.goto(url);
+  await expandDetails(page);
+  return response;
+}
+export async function refresh(page) {
+  const response = await page.reload();
+  await expandDetails(page);
+  return response;
 }

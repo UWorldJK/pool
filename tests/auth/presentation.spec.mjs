@@ -29,6 +29,8 @@ test("R8 account, onboarding and setup reflow with accessible keyboard navigatio
     await expect(page.locator(".week-day")).toHaveCount(7);await accessible(page);
     await page.goto("/app");await family(page,"Presentation family","Presentation guardian");
     await accessible(page);await captureState(page,"family");
+    await expect(page.locator("details").filter({has:page.locator("summary").filter({hasText:/^Create a circle$/})})).not.toHaveAttribute("open");
+    await page.locator("summary").filter({hasText:/^Create a circle$/}).click();
     await page.getByLabel("Circle name").fill("Presentation circle");await page.getByRole("button",{name:"Create circle",exact:true}).click();
     await page.getByRole("link",{name:"Open saved membership"}).click();await accessible(page);await captureState(page,"circle");
     await page.goto("/app/children");await page.getByLabel("Child display name").fill("Presentation child");await page.getByRole("button",{name:"Save child",exact:true}).click();
@@ -45,7 +47,7 @@ test("R8 account, onboarding and setup reflow with accessible keyboard navigatio
     await page.keyboard.press("Tab");await expect(page.getByRole("link",{name:"Skip to main content"})).toBeFocused();await page.keyboard.press("Enter");await expect(page.locator("#main-content")).toBeFocused();
     await page.setViewportSize({width:1440,height:1000});
     await page.getByRole("link",{name:"Families and circles",exact:true}).focus();await expect(page.getByRole("link",{name:"Families and circles",exact:true})).toHaveAttribute("aria-current","page");
-    await page.goto("/app");await page.getByLabel("Family name",{exact:true}).fill(" ");await page.getByLabel("Your display name").fill("Presentation guardian");
+    await page.goto("/app");await page.locator("summary").filter({hasText:/^Create a family$/}).click();await page.getByLabel("Family name",{exact:true}).fill(" ");await page.getByLabel("Your display name").fill("Presentation guardian");
     await page.getByRole("button",{name:"Create family",exact:true}).click();await expect(page.locator("#main-content [role=alert]")).toBeVisible();
     await expect(page.locator(".form-outcome").filter({has:page.getByRole("alert")})).toBeFocused();await accessible(page);
     await page.emulateMedia({colorScheme:"dark"});expect(await page.evaluate(()=>getComputedStyle(document.documentElement).colorScheme)).toBe("light");await accessible(page);

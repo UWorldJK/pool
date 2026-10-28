@@ -1,89 +1,113 @@
-# R8 — Original Pool design, corrected interactions
+# R8 — A calmer Pool
 
-R8 is based on remote R7 `0bab9a3` (`lkluge/driver-replacements`), which contains
-R1–R7. Parent: [PR #9](https://github.com/UWorldJK/pool/pull/9). The PR targets
-that branch; production delivery remains limited to validated, protected,
-PR-merged current `main`. CI now admits the R7 stacked base. There are no schema,
-RPC, server-action, authorization or release-policy changes.
+PR [#10](https://github.com/UWorldJK/pool/pull/10) continues on
+`lkluge/web-visual-parity`, based on R7 `0bab9a3`
+([PR #9](https://github.com/UWorldJK/pool/pull/9)). Production remains restricted
+to validated, protected, PR-merged current `main`. This is presentation work:
+no schema, API, RPC, authorization, server-action or release-policy changes.
 
-## Reference choice
+## Design and interaction references
 
-Inspected the running R7 app and the preserved local originals before styling:
+The original `sites/pool-prototype/dist` is the primary visual reference: Pool's
+mark, restrained green, warm ink, light canvas, white surfaces, route markers,
+soft status fills, balanced spacing and calm navigation. The final design uses
+native system typography and fewer visible controls. It preserves the original's
+character without reproducing every panel or its sample-data claims.
 
-- `sites/pool-prototype/dist`: visual source — DM Sans, `#f7f8fa` canvas,
-  `#23332f` ink, `#326a55` green, white sidebar, 87px desktop header, rounded
-  cards, compact route rows, soft status fills and generous section spacing.
-- `sites/pool-prototype-v3/dist`, its `DESIGN-NOTES.md` and six model tests:
-  interaction evidence, interpreted through the implemented authorization rules.
-- `exports/pool-v3.html`: standalone behavioral reference, including separate
-  arrival and explicit receipt. Its model is embedded verbatim from v3. The export’s initial font-import text is malformed, so it is behavioral evidence, not the visual source; the reference is preserved as supplied. None of its browser-storage application is copied.
-- `docs/development-roadmap.md`: R8 and the prototype-conflict table.
+`sites/pool-prototype-v3/dist`, `DESIGN-NOTES.md`, its six behavioral tests,
+`exports/pool-v3.html`, and the roadmap's prototype-conflict table informed the
+interaction review. The export has a malformed initial font import; it remains
+preserved as supplied. The prototype's browser-storage logic, simulations,
+automatic approvals and sample capabilities were not transplanted. Reference
+files, local README edits, accounts and existing demo data remain intact.
 
-Original visual language is the implementation reference. Final visual sign-off
-belongs to the user; these are comparable implementation screenshots, not a claim
-that the prototype and production functionality are identical. Original files
-remain untracked and unmodified. DM Sans is locally hosted with its OFL license;
-no font provider request is made while using Pool.
+## Presentation changes
 
-## Intentional differences
+- Four main destinations: needs attention, the weekly schedule, families/circles
+  and driving. Children, vehicles and invitations remain available in context.
+  Account details and sign-out sit behind Account. Phone navigation retains a
+  native modal dialog, trapped focus, Escape and focus restoration.
+- Existing memberships lead the home screen. Family creation is prominent for
+  an empty account and expandable for an established family. Removal, editing,
+  invitation history and other infrequent controls open on request.
+- The schedule retains all seven days and both directions. Compact ride rows
+  show one route, pickup/end times, actual driver/coverage and outstanding
+  replies. A past pickup never becomes a completion claim. Week and timezone
+  controls open from the week toolbar.
+- Ride pages lead with route, time, actual current driver and an explicit review
+  link when a reply is needed. Active trips bring per-child handoffs forward.
+  The adult's own family's children appear first and keep their position through
+  saved reports; each child's completion remains independent. Historical report times stay available.
+- Planning groups route, time and riders. Repeated-hour options open only when
+  needed. Replacement deadlines use a native UTC date/time input while sending
+  the same explicit UTC `deadline` value to the existing action.
+- Native expandable sections retain their open state across revalidation so a
+  save or error cannot hide its own result. Consent, acceptance and receipt
+  still require the existing explicit checkboxes and authenticated submissions.
 
-| Original design | Working application |
+## Important distinctions retained
+
+| State or boundary | Presentation |
 | --- | --- |
-| Fictional team switcher, family photos, ride counts and blanket coverage reassurance | Actual memberships, route data and saved replies; counts only from authorized records. No invented team or all-covered message. |
-| Overview/map split and sample live route | Real family/circle cards, schedule, assignment and per-child progress cards. Maps, ETAs and sharing claims are omitted. |
-| Tiny pale text and small icon-only controls | Darker secondary text, readable labels, 44px primary/checkbox targets, visible focus, skip link and 16px form inputs. |
-| Four prototype navigation destinations and demo settings | Existing real application destinations; active-page indication and a native modal navigation dialog on phones with Escape, trapped focus and restoration. |
-| Direction/day filters can conceal open needs | Seven visible days and all rides/directions in the selected week. Separate needs-attention destination and literal coverage states. |
-| One route field | Explicit pickup and destination. Invitation/proposed-driver projections stay coarse; private locations remain behind existing participation/driver checks. A missing private driver projection for an unjoined family is not presented as proof that a ride is uncovered. |
-| Candidate or fallback vehicle looks like current coverage | Vehicle always belongs to the explicitly labeled proposal/candidate. Current original-driver name is shown separately during a swap; closed requests are labeled declined/cancelled/expired. |
-| Nomination or one parent appears to approve everyone | Actual driver acceptance and per-child guardian consent remain separate. No simulator, override approval or standing circle-approval badge. |
-| Original driver remains through every change | Only available originals remain during optional swaps. Unavailable rides stay uncovered until real acceptance and complete fresh consent. |
-| Arrival preview can imply completion | Arrival persists as awaiting guardian receipt. Every child has an independent, terminal receipt state; trip completion requires them all. |
-| Drawers for ride workflows | Existing navigable pages and explicit, persisted forms. Closing navigation never mutates a ride. |
-| Later prototype dark switch | Original light appearance retained. No theme switch or dark palette is shipped; system dark preference still shows this tested light design. |
-| Notification, contact and settings controls | Omitted unless already implemented. Manual invitation links remain explicitly manual. |
+| Nomination versus coverage | Proposals identify the actual candidate and vehicle; acceptance and child-consent totals remain separate. Unconfirmed proposals are explicitly uncovered. |
+| Optional swap | The available original driver stays visibly assigned until the replacement is fully confirmed. Candidate vehicle data is labeled as candidate data. |
+| Driver unavailable | No released driver is presented as current coverage. Decline, cancellation and expiry leave the ride uncovered until a fresh request completes. |
+| Closed optional request | Declined, cancelled and expired candidate history stays distinct from the still-available original assignment. |
+| Arrival | Awaiting guardian receipt persists. Arrival never implies receipt or whole-ride completion. |
+| Child completion | Every child has their own terminal handoff status; other children remain awaiting receipt. |
+| Authority | The same verified public-key session, RLS projections and authenticated actions govern every read and write. Disclosures do not grant access. |
+| Private invitation/proposal | Coarse route and necessary seat information only. Missing private driver data is not evidence that an unjoined ride has no driver. |
+| Unsupported features | No GPS, ETA, maps, notification delivery, standing driver approval, simulated consent or automatic receipt. |
 
 The current `driver_status` contract supplies the latest candidate vehicle and
-current original-driver name, but does **not** supply a separate current vehicle
-snapshot during a different candidate request. R8 labels candidate vehicle data
-explicitly and does not invent that missing snapshot. A richer current-vehicle
-projection would require separate contract scoping; no permission bypass or
-schema change was added here.
+original-driver name, but no separate original-vehicle snapshot during a swap.
+The UI labels the candidate vehicle explicitly and does not invent missing data.
+Native system typography replaces the earlier R8 font use; the preserved local
+font asset and license are no longer requested by the UI.
 
-## Screenshot evidence and reproduction
+## Comparable screenshots
 
-The before set is rendered from unchanged R7; the after set is rendered from R8.
-Both use the same authenticated R7 journey, real public-key sessions, persisted
-records and actions on disposable local Supabase. Fixture names appear only in
-tests and their screenshots. No production/demo fixtures are added. Desktop is
-1440×1000; phone is 390×844. Long detail pages are anchored at the same named
-assignment/progress heading. Dates/IDs and captured account emails can differ
-between independent runs. The final candidate/current-driver test also gives the two vehicles distinct labels to guard against fallback mix-ups.
+The sets below use the **same saved local demo records and Bob's account**, with
+no ride mutations, reseeding or database reset. Before is commit `9337100`, served
+from a temporary snapshot; after is the revised PR. Each view starts at the top
+with its default disclosure state. Desktop is **1440×1000** and phone is
+**390×844**; saved JPEG dimensions were checked. Fictional demo names and dates
+are intentionally identical. Auth views use empty fields. The older
+`r8-screenshots/` evidence remains preserved and is not overwritten.
 
-| State | Desktop before / after | Phone before / after |
+| View | Desktop before / after | Phone before / after |
 | --- | --- | --- |
-| Empty | [Before](r8-screenshots/before/empty-desktop.png) · [After](r8-screenshots/after/empty-desktop.png) | [Before](r8-screenshots/before/empty-phone.png) · [After](r8-screenshots/after/empty-phone.png) |
-| Uncovered | [Before](r8-screenshots/before/uncovered-desktop.png) · [After](r8-screenshots/after/uncovered-desktop.png) | [Before](r8-screenshots/before/uncovered-phone.png) · [After](r8-screenshots/after/uncovered-phone.png) |
-| Pending | [Before](r8-screenshots/before/pending-desktop.png) · [After](r8-screenshots/after/pending-desktop.png) | [Before](r8-screenshots/before/pending-phone.png) · [After](r8-screenshots/after/pending-phone.png) |
-| Confirmed | [Before](r8-screenshots/before/confirmed-desktop.png) · [After](r8-screenshots/after/confirmed-desktop.png) | [Before](r8-screenshots/before/confirmed-phone.png) · [After](r8-screenshots/after/confirmed-phone.png) |
-| Cancelled optional swap | [Before](r8-screenshots/before/closed-swap-desktop.png) · [After](r8-screenshots/after/closed-swap-desktop.png) | [Before](r8-screenshots/before/closed-swap-phone.png) · [After](r8-screenshots/after/closed-swap-phone.png) |
-| Declined optional swap | [Before](r8-screenshots/before/declined-desktop.png) · [After](r8-screenshots/after/declined-desktop.png) | [Before](r8-screenshots/before/declined-phone.png) · [After](r8-screenshots/after/declined-phone.png) |
-| Expired optional swap | [Before](r8-screenshots/before/expired-desktop.png) · [After](r8-screenshots/after/expired-desktop.png) | [Before](r8-screenshots/before/expired-phone.png) · [After](r8-screenshots/after/expired-phone.png) |
-| Arrival awaiting receipt | [Before](r8-screenshots/before/awaiting-handoff-desktop.png) · [After](r8-screenshots/after/awaiting-handoff-desktop.png) | [Before](r8-screenshots/before/awaiting-handoff-phone.png) · [After](r8-screenshots/after/awaiting-handoff-phone.png) |
-| Completed | [Before](r8-screenshots/before/completed-desktop.png) · [After](r8-screenshots/after/completed-desktop.png) | [Before](r8-screenshots/before/completed-phone.png) · [After](r8-screenshots/after/completed-phone.png) |
+| Families and circles | [Before](simplification-screenshots/before/families-desktop.jpg) · [After](simplification-screenshots/after/families-desktop.jpg) | [Before](simplification-screenshots/before/families-phone.jpg) · [After](simplification-screenshots/after/families-phone.jpg) |
+| Family management | [Before](simplification-screenshots/before/family-desktop.jpg) · [After](simplification-screenshots/after/family-desktop.jpg) | [Before](simplification-screenshots/before/family-phone.jpg) · [After](simplification-screenshots/after/family-phone.jpg) |
+| Circle management | [Before](simplification-screenshots/before/circle-desktop.jpg) · [After](simplification-screenshots/after/circle-desktop.jpg) | [Before](simplification-screenshots/before/circle-phone.jpg) · [After](simplification-screenshots/after/circle-phone.jpg) |
+| Children | [Before](simplification-screenshots/before/children-desktop.jpg) · [After](simplification-screenshots/after/children-desktop.jpg) | [Before](simplification-screenshots/before/children-phone.jpg) · [After](simplification-screenshots/after/children-phone.jpg) |
+| Vehicles | [Before](simplification-screenshots/before/vehicles-desktop.jpg) · [After](simplification-screenshots/after/vehicles-desktop.jpg) | [Before](simplification-screenshots/before/vehicles-phone.jpg) · [After](simplification-screenshots/after/vehicles-phone.jpg) |
+| Planning | [Before](simplification-screenshots/before/planning-desktop.jpg) · [After](simplification-screenshots/after/planning-desktop.jpg) | [Before](simplification-screenshots/before/planning-phone.jpg) · [After](simplification-screenshots/after/planning-phone.jpg) |
+| Weekly schedule | [Before](simplification-screenshots/before/schedule-desktop.jpg) · [After](simplification-screenshots/after/schedule-desktop.jpg) | [Before](simplification-screenshots/before/schedule-phone.jpg) · [After](simplification-screenshots/after/schedule-phone.jpg) |
+| Needs attention | [Before](simplification-screenshots/before/attention-desktop.jpg) · [After](simplification-screenshots/after/attention-desktop.jpg) | [Before](simplification-screenshots/before/attention-phone.jpg) · [After](simplification-screenshots/after/attention-phone.jpg) |
+| Needs a driver | [Before](simplification-screenshots/before/needs-driver-desktop.jpg) · [After](simplification-screenshots/after/needs-driver-desktop.jpg) | [Before](simplification-screenshots/before/needs-driver-phone.jpg) · [After](simplification-screenshots/after/needs-driver-phone.jpg) |
+| Driver reply pending | [Before](simplification-screenshots/before/pending-desktop.jpg) · [After](simplification-screenshots/after/pending-desktop.jpg) | [Before](simplification-screenshots/before/pending-phone.jpg) · [After](simplification-screenshots/after/pending-phone.jpg) |
+| Confirmed | [Before](simplification-screenshots/before/confirmed-desktop.jpg) · [After](simplification-screenshots/after/confirmed-desktop.jpg) | [Before](simplification-screenshots/before/confirmed-phone.jpg) · [After](simplification-screenshots/after/confirmed-phone.jpg) |
+| Optional replacement | [Before](simplification-screenshots/before/replacement-desktop.jpg) · [After](simplification-screenshots/after/replacement-desktop.jpg) | [Before](simplification-screenshots/before/replacement-phone.jpg) · [After](simplification-screenshots/after/replacement-phone.jpg) |
+| Unavailable driver | [Before](simplification-screenshots/before/unavailable-desktop.jpg) · [After](simplification-screenshots/after/unavailable-desktop.jpg) | [Before](simplification-screenshots/before/unavailable-phone.jpg) · [After](simplification-screenshots/after/unavailable-phone.jpg) |
+| Declined | [Before](simplification-screenshots/before/declined-desktop.jpg) · [After](simplification-screenshots/after/declined-desktop.jpg) | [Before](simplification-screenshots/before/declined-phone.jpg) · [After](simplification-screenshots/after/declined-phone.jpg) |
+| Expired optional swap | [Before](simplification-screenshots/before/expired-desktop.jpg) · [After](simplification-screenshots/after/expired-desktop.jpg) | [Before](simplification-screenshots/before/expired-phone.jpg) · [After](simplification-screenshots/after/expired-phone.jpg) |
+| Cancelled ride | [Before](simplification-screenshots/before/cancelled-desktop.jpg) · [After](simplification-screenshots/after/cancelled-desktop.jpg) | [Before](simplification-screenshots/before/cancelled-phone.jpg) · [After](simplification-screenshots/after/cancelled-phone.jpg) |
+| Picked up | [Before](simplification-screenshots/before/picked-up-desktop.jpg) · [After](simplification-screenshots/after/picked-up-desktop.jpg) | [Before](simplification-screenshots/before/picked-up-phone.jpg) · [After](simplification-screenshots/after/picked-up-phone.jpg) |
+| Arrival awaiting receipt | [Before](simplification-screenshots/before/awaiting-receipt-desktop.jpg) · [After](simplification-screenshots/after/awaiting-receipt-desktop.jpg) | [Before](simplification-screenshots/before/awaiting-receipt-phone.jpg) · [After](simplification-screenshots/after/awaiting-receipt-phone.jpg) |
+| Completed | [Before](simplification-screenshots/before/completed-desktop.jpg) · [After](simplification-screenshots/after/completed-desktop.jpg) | [Before](simplification-screenshots/before/completed-phone.jpg) · [After](simplification-screenshots/after/completed-phone.jpg) |
+| Authentication | [Before](simplification-screenshots/before/authentication-desktop.jpg) · [After](simplification-screenshots/after/authentication-desktop.jpg) | [Before](simplification-screenshots/before/authentication-phone.jpg) · [After](simplification-screenshots/after/authentication-phone.jpg) |
 
-Additional R8 views: [authentication desktop](r8-screenshots/after/authentication-desktop.png) / [phone](r8-screenshots/after/authentication-phone.png),
-[family desktop](r8-screenshots/after/family-desktop.png) / [phone](r8-screenshots/after/family-phone.png),
-[circle desktop](r8-screenshots/after/circle-desktop.png) / [phone](r8-screenshots/after/circle-phone.png),
-[ride planning desktop](r8-screenshots/after/planning-desktop.png) / [phone](r8-screenshots/after/planning-phone.png),
-and [full week desktop](r8-screenshots/after/schedule-desktop.png) / [phone](r8-screenshots/after/schedule-phone.png).
+The [expanded phone replacement review](simplification-screenshots/after/replacement-review-phone.jpg) shows the candidate and explicit per-child selection; opening it does not save consent.
 
-Run `POOL_SCREENSHOTS_DIR=docs/r8-screenshots/after npm run test:auth` with Node
-24.22.1 and Docker. This creates its own disposable backend and leaves existing
-Pool data intact. CI runs the same interactions, axe checks, reflow and target
-assertions without writing screenshots. `POOL_BASELINE=1` is exclusively a
-screenshot-capture option for running this helper against original R7; it skips
-R8-specific accessibility assertions. It is not set in CI.
+## Validation
 
-Local validation passed: Node 24.22.1 lint/type checks, 72 unit tests, production build, clean/upgrade migrations and generated-type equality, real-session permission/race tests, all 12 browser journeys, disposable Compose validation and production container smoke. A separate keyboard pass in the running app verified forward/backward dialog wrapping, Escape and Menu focus restoration. GitHub checks and review status are recorded in the PR. Hosted delivery is
-not claimed; the inherited merged-main release gates remain intact.
+The browser suite creates a disposable backend on ports 55320–55329; it never
+resets the normal Pool backend. Functional journeys open secondary controls using
+their native disclosure UI. Dedicated presentation checks cover default layouts,
+keyboard navigation and save/error visibility. Accessibility assertions include
+axe, 320px reflow, desktop/phone layouts and 44px buttons, checkbox labels and
+disclosure targets. These checks do not constitute a full screen-reader audit.
+
+Validation results and the focused Codex review are recorded in PR #10. Hosted
+delivery is not claimed. No merge or production release is part of this work.

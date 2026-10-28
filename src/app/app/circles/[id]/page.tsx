@@ -1,3 +1,4 @@
+import { PageHeading, Disclosure } from "../../presentation";
 import { notFound } from "next/navigation";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import { verifiedUser } from "@/lib/auth/identity";
@@ -20,18 +21,18 @@ export default async function CirclePage({ params }: { params: Promise<{ id: str
   if (roster.error || owned.error) throw new Error("Roster could not be loaded");
   const coordinator = currentCircle.coordinator_id === user.id;
   return <>
-    <h1>{currentCircle.name}</h1><p>A circle coordinates families. Membership never grants driver approval or authority over another family.</p>
+    <PageHeading title={currentCircle.name} />
     <h2>Families in this circle</h2>
     <ul>{roster.data.map((family) => <li key={family.family_id}>
       {family.family_name}{family.family_id === currentCircle.coordinator_family_id ? " (coordinating family)" : ""}
-      {(coordinator || owned.data.some((member) => member.family_id === family.family_id)) && <MembershipForm command="remove-family" fields={{ circle_id: id, family_id: family.family_id }} label={coordinator ? "Remove family from circle" : "Leave circle"}>
+      {(coordinator || owned.data.some((member) => member.family_id === family.family_id)) && family.family_id !== currentCircle.coordinator_family_id && <Disclosure title={coordinator ? "Remove family" : "Leave circle"}><MembershipForm command="remove-family" fields={{ circle_id: id, family_id: family.family_id }} label={coordinator ? "Remove family from circle" : "Leave circle"}>
         <label className="checkbox-label"><input type="checkbox" name="confirm" value="yes" required />I confirm this family’s removal from the circle.</label>
-      </MembershipForm>}
+      </MembershipForm></Disclosure>}
     </li>)}</ul>
-    <p>The coordinating family must remain.</p>
+
     {coordinator && <>
-      <h2>Invite another family</h2><p>Invite a verified adult by email. They choose a family they own or create one. They do not join your family.</p>
-      <InviteForm kind="circle" scopeId={id} /><InvitationList kind="circle" scopeId={id} />
+      <Disclosure title="Invite another family"><p>Invite an adult to join this circle with their own family. Share the invitation link yourself.</p>
+      <InviteForm kind="circle" scopeId={id} /></Disclosure><InvitationList kind="circle" scopeId={id} />
     </>}
   </>;
 }

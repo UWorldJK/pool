@@ -29,3 +29,8 @@ export function Confirmation({ children }: { children: React.ReactNode }) {
 export function VehicleFields({ label = "", seats = 1 }: { label?: string; seats?: number }) {
   return <><label>Vehicle label<input name="label" maxLength={80} defaultValue={label} required /></label><label>Passenger seats, excluding you<input name="passenger_seats" type="number" min={1} max={50} step={1} defaultValue={seats} required /></label></>;
 }
+
+export function UTCDeadline({ value, latest }: { value: string; latest: string }) {
+  const [local, setLocal] = useState(value.slice(0, 19));
+  return <label>Review deadline in UTC<input type="datetime-local" name="deadline_utc" step="1" required value={local} max={latest.slice(0, 19)} onChange={(event) => setLocal(event.target.value)} /><input type="hidden" name="deadline" value={local ? `${local}Z` : ""} /></label>;
+}

@@ -1,10 +1,11 @@
+import { Disclosure } from "./presentation";
 import Link from "next/link";
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import type { DriverStatus } from "@/lib/drivers";
 import { rideTime } from "@/lib/rides";
 import { ChildChoices } from "./ride-form";
-import { DriverForm, Confirmation } from "./driver-form";
+import { DriverForm, Confirmation, UTCDeadline } from "./driver-form";
 type Option = Database["public"]["Functions"]["driver_options"]["Returns"][number];
 export async function ReplacementPanel({ status, familyId, revision, frozen, options, after }: { status: DriverStatus; familyId: string; revision: number; frozen: boolean; options: Option[]; after?: string }) {
   if (after && (!/^\d{1,16}$/.test(after) || !Number.isSafeInteger(Number(after)) || Number(after)<1)) throw new Error("Invalid replacement history cursor");
@@ -28,14 +29,14 @@ export async function ReplacementPanel({ status, familyId, revision, frozen, opt
     : { data:[],error:null };
   if (originalRiders.error) throw new Error("Current riders could not be loaded");
   const mode = assigned ? "optional_swap" : "unavailable";
-  return <section aria-labelledby="replacement-review"><h2 id="replacement-review">Replacement requests and review</h2>
-    <p>Choose a circle adult manually. Ask participants to open this ride and reply themselves; no notification delivery is implied. Reload for current replies and database-enforced expiry.</p>
-    {frozen ? <p>Replacement is unavailable after any child’s pickup.</p> : pending ? <p>The current request must close before another can be nominated. Review the driver acceptance and child consent totals above; every enrolled child requires fresh consent.</p> : !status.cancelled_at && status.current_assignment_id && canRequest ? <>
+  return <Disclosure title="Change driver or review replacement history" open={Boolean(after)}><h2 id="replacement-review">Replacement requests and review</h2>
+    <p>Share the ride with participants yourself. Each adult must open it and save their own reply.</p>
+    {frozen ? <p>Replacement is unavailable after any child’s pickup.</p> : status.cancelled_at ? <p>This ride is cancelled. Previous replacement activity is available below.</p> : pending ? <p>The current request must close before another can be nominated. Review the driver acceptance and child consent totals above; every enrolled child requires fresh consent.</p> : !status.cancelled_at && status.current_assignment_id && canRequest ? <>
       <p>{assigned ? "Optional swap: the available current driver stays assigned until a replacement is fully confirmed. Decline, cancellation and expiry preserve that assignment." : "Unavailable driver: this ride is uncovered. Only a fresh request with the actual driver acceptance and consent for every child can restore coverage."}</p>
       <DriverForm key={`replacement-${status.proposal_id}-${status.proposal_status}`} command="requestReplacement" fields={{ proposal_id:crypto.randomUUID(),ride_id:status.ride_id,family_id:familyId,revision:String(revision),mode,original_assignment_id:status.current_assignment_id,original_assignment_revision:String(status.current_assignment_revision) }} label="Request replacement">
         <label>Replacement driver and registered vehicle<select name="driver_vehicle" required defaultValue=""><option value="" disabled>Choose a circle adult and vehicle</option>{candidates.map((v) => <option key={`${v.driver_id}-${v.driver_family_id}-${v.vehicle_id}`} value={[v.driver_id,v.driver_family_id,v.vehicle_id,v.vehicle_version].join("|")}>{v.display_name} · {v.vehicle_label} · {v.passenger_seats} passenger seats</option>)}</select></label>
-        <label>Review deadline in UTC<input name="deadline" type="text" required defaultValue={new Date(status.starts_at).toISOString()} aria-describedby="replacement-deadline-help" /></label>
-        <p id="replacement-deadline-help">Use an explicit UTC instant, such as 2027-09-01T14:00:00Z. Deadline must be in the future and no later than pickup: {rideTime(status.starts_at,status.timezone)}. The database clock decides expiry.</p>
+        <UTCDeadline value={new Date(status.starts_at).toISOString()} latest={new Date(status.starts_at).toISOString()} />
+        <p>Choose a future deadline no later than pickup: {rideTime(status.starts_at,status.timezone)}. This field uses UTC.</p>
         <Confirmation>I request a replacement with fresh driver acceptance and consent for every enrolled child.</Confirmation>
       </DriverForm>
       {!candidates.length && <p>An eligible adult must <Link href="/app/vehicles">register a vehicle</Link> first.</p>}
@@ -46,8 +47,8 @@ export async function ReplacementPanel({ status, familyId, revision, frozen, opt
         <Confirmation>I revoke consent for the current driver and leave this ride needing a driver.</Confirmation>
       </DriverForm>
     </>}
-    <h3>Replacement activity</h3>{history.data.length ? <ol className="activity-list">{history.data.slice(0,25).map((e) => <li key={e.id}>{e.kind} — {e.actor_name} at <time dateTime={e.occurred_at}>{rideTime(e.occurred_at,status.timezone)}</time> · Request {e.proposal_id}</li>)}</ol> : <p>No replacement requests on this page.</p>}
+    <h3>Replacement activity</h3>{history.data.length ? <ol className="activity-list">{history.data.slice(0,25).map((e) => <li key={e.id}>{e.kind} — {e.actor_name} at <time dateTime={e.occurred_at}>{rideTime(e.occurred_at,status.timezone)}</time></li>)}</ol> : <p>No replacement requests on this page.</p>}
     {history.data.length>25 && <Link href={`/app/rides/${status.ride_id}?${new URLSearchParams({ family:familyId,after_replacement:String(history.data[24].id) })}`}>Next replacement activity</Link>}
     {after && <Link href={`/app/rides/${status.ride_id}?family=${familyId}`}>First replacement activity</Link>}
-  </section>;
+  </Disclosure>;
 }

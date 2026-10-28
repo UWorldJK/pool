@@ -2,7 +2,7 @@ import { createReadOnlyClient } from "@/lib/supabase/server";
 import { progressLabel } from "@/lib/handoffs";
 import { rideTime } from "@/lib/rides";
 import { HandoffForm } from "./handoff-form";
-import { StatusBadge } from "./presentation";
+import { Disclosure, StatusBadge } from "./presentation";
 import { Confirmation } from "./driver-form";
 export async function HandoffPanel({ rideId, revision, timezone, isDriver, cancelled }: { rideId: string; revision: number; timezone: string; isDriver: boolean; cancelled: boolean }) {
   const client = await createReadOnlyClient();
@@ -21,25 +21,26 @@ export async function HandoffPanel({ rideId, revision, timezone, isDriver, cance
   if (profiles.error) throw new Error("Guardian names could not be loaded");
   const actor = user.data.user?.id;
   const started = Boolean(trip.data);
-  return <section aria-labelledby="trip-progress"><h2 id="trip-progress">Manually reported trip progress</h2>
-    <p>Adults report pickup and arrival. Each designated guardian must separately confirm actual receipt of their child. Refresh for saved reports. These reports do not provide live tracking, automatic arrival detection or a safety guarantee.</p>
-    <p role="status" className="notice">{trip.data?.completed_at ? "Ride completed — every child’s handoff is confirmed." : started ? "Trip in progress — handoffs remain." : "Trip has not started. Every child needs a designated guardian before first pickup."}</p>
-    {started && <p>The active plan is frozen. Ordinary cancellation, withdrawal, consent revocation, recipient changes and removal of responsible memberships are unavailable.</p>}
-    <ul className="journey-list">{riders.data.map((rider) => {
+  const awaiting = handoffs.data.filter((h) => h.status === "awaiting_handoff").length;
+  const ownFamilies = new Set(guardians.data.filter((g) => g.user_id === actor).map((g) => g.family_id));
+  // Keep each child's position stable while reports are saved, with the adult's
+  // own family first. Moving a focused child after a report can lose focus.
+  const orderedRiders = [...riders.data].sort((a,b) => Number(ownFamilies.has(b.family_id)) - Number(ownFamilies.has(a.family_id)));
+  return <section aria-labelledby="trip-progress"><h2 id="trip-progress">Pickup and handoffs</h2>
+    <p className="section-caption">Manually reported · Reload for updates</p>
+    <p role="status" className={`notice${awaiting ? " attention" : ""}`}>{trip.data?.completed_at ? "Ride completed — every child’s handoff is confirmed." : awaiting ? `${awaiting} ${awaiting === 1 ? "child awaits" : "children await"} guardian receipt. The ride is not complete.` : started ? "Trip in progress — handoffs remain." : "Before pickup · Designate a receiving guardian for each child."}</p>
+    <ul className="journey-list">{orderedRiders.map((rider) => {
       const h = handoffs.data.find((item) => item.child_id===rider.child_id);
       const own = guardians.data.some((g) => g.family_id===rider.family_id && g.user_id===actor);
       const fields = { ride_id:rideId,child_id:rider.child_id,revision:String(revision),version:String(h?.version ?? 0) };
       const recipient = h?.recipient_id === actor && own;
       return <li key={rider.child_id}><article aria-label={`Journey for ${rider.display_name}`}>
-        <h3 id={`journey-${rideId}-${rider.child_id}`} tabIndex={-1}>{rider.display_name}</h3><p aria-live="polite" aria-atomic="true"><StatusBadge tone={h?.status === "awaiting_handoff" ? "attention" : h?.status === "completed" ? "positive" : "neutral"}><strong>{progressLabel(h?.status)}</strong></StatusBadge> · Recipient: {h?.recipient_name ?? "Not designated"}</p>
-        {h?.picked_up_at && <p>Pickup reported: <time dateTime={h.picked_up_at}>{rideTime(h.picked_up_at,timezone)}</time></p>}
-        {h?.arrived_at && <p>Arrival reported: <time dateTime={h.arrived_at}>{rideTime(h.arrived_at,timezone)}</time>. {h.status!=="completed" && "Guardian receipt is still required."}</p>}
-        {h?.completed_at && <p>Receipt confirmed: <time dateTime={h.completed_at}>{rideTime(h.completed_at,timezone)}</time></p>}
+        <h3 id={`journey-${rideId}-${rider.child_id}`} tabIndex={-1}>{rider.display_name}</h3><p aria-live="polite" aria-atomic="true"><StatusBadge tone={h?.status === "awaiting_handoff" ? "attention" : h?.status === "completed" ? "positive" : "neutral"}><strong>{progressLabel(h?.status)}</strong></StatusBadge></p><p>Receiving guardian: {h?.recipient_name ?? "Not designated"}</p>
         {!started && own && h && !guardians.data.some((g) => g.family_id===rider.family_id && g.user_id===h.recipient_id) && <p role="alert">The designated guardian is no longer active. Choose a current guardian before pickup.</p>}
-        {!started && !cancelled && own && <HandoffForm key={`recipient-${rider.child_id}`} command="designateRecipient" fields={fields} label="Save designated guardian">
+        {!started && !cancelled && own && <Disclosure title={h?.recipient_id ? "Change receiving guardian" : "Choose receiving guardian"} open={!h?.recipient_id}><HandoffForm key={`recipient-${rider.child_id}`} command="designateRecipient" fields={fields} label="Save designated guardian">
           <label>Designated guardian for {rider.display_name}<select key={h?.recipient_id ?? "none"} name="recipient_id" defaultValue={h?.recipient_id ?? ""} required><option value="" disabled>Choose an active guardian</option>{guardians.data.filter((g) => g.family_id===rider.family_id).map((g) => <option key={g.user_id} value={g.user_id}>{profiles.data.find((p) => p.id===g.user_id)?.display_name ?? "Guardian"}{g.user_id===actor ? " (you)" : ""}</option>)}</select></label>
           <Confirmation>I designate this guardian to receive {rider.display_name}. A guardian who drives must still explicitly confirm receipt.</Confirmation>
-        </HandoffForm>}
+        </HandoffForm></Disclosure>}
         {!cancelled && isDriver && h?.status==="scheduled" && <HandoffForm key={`pickup-${rider.child_id}-${h.version}`} command="recordPickup" fields={{ ...fields,request_id:crypto.randomUUID() }} label="Report pickup">
           <Confirmation>I report that I picked up {rider.display_name}. First pickup freezes this ride’s plan and responsibilities.</Confirmation>
         </HandoffForm>}
@@ -49,9 +50,15 @@ export async function HandoffPanel({ rideId, revision, timezone, isDriver, cance
         {!cancelled && recipient && h?.status==="awaiting_handoff" && <HandoffForm key={`receipt-${rider.child_id}-${h.version}`} command="confirmHandoff" fields={{ ...fields,request_id:crypto.randomUUID() }} label="Confirm child received">
           <Confirmation>I explicitly confirm that I have received {rider.display_name}.</Confirmation>
         </HandoffForm>}
-        {h?.status==="awaiting_handoff" && !recipient && <p>Awaiting explicit receipt from {h.recipient_name}. Driving or family membership alone does not authorize this receipt.</p>}
+        {h?.status==="awaiting_handoff" && !recipient && <p>Awaiting explicit receipt from {h.recipient_name}.</p>}
+        {(h?.picked_up_at || h?.arrived_at || h?.completed_at) && <Disclosure title="Report times">
+          {h?.picked_up_at && <p>Pickup reported: <time dateTime={h.picked_up_at}>{rideTime(h.picked_up_at,timezone)}</time></p>}
+        {h?.arrived_at && <p>Arrival reported: <time dateTime={h.arrived_at}>{rideTime(h.arrived_at,timezone)}</time>. {h.status!=="completed" && "Guardian receipt is still required."}</p>}
+        {h?.completed_at && <p>Receipt confirmed: <time dateTime={h.completed_at}>{rideTime(h.completed_at,timezone)}</time></p>}
+        </Disclosure>}
       </article></li>;
     })}</ul>
-    <h2>Ride activity</h2>{events.data.length ? <ol className="activity-list">{events.data.map((event) => <li key={event.request_id}>{riders.data.find((r) => r.child_id===event.child_id)?.display_name}: {progressLabel(event.kind)} — reported by {event.actor_name} at <time dateTime={event.occurred_at}>{rideTime(event.occurred_at,timezone)}</time> ({event.occurred_at}).</li>)}</ol> : <p>No pickup, arrival or receipt reports yet.</p>}
+    <Disclosure title="Ride activity"><h3>Ride activity</h3>{events.data.length ? <ol className="activity-list">{events.data.map((event) => <li key={event.request_id}>{riders.data.find((r) => r.child_id===event.child_id)?.display_name}: {progressLabel(event.kind)} — reported by {event.actor_name} at <time dateTime={event.occurred_at}>{rideTime(event.occurred_at,timezone)}</time>.</li>)}</ol> : <p>No pickup, arrival or receipt reports yet.</p>}
+    </Disclosure>
   </section>;
 }

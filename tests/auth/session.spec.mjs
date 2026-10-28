@@ -1,3 +1,4 @@
+import { expandDetails } from "./helpers.mjs";
 import { test, expect } from "@playwright/test";
 
 const password = "Pool-test-password-2026!";
@@ -107,7 +108,8 @@ test("real signup, email confirmation, two users, refresh propagation and sign-o
     "confirm your email",
   );
   await confirm(pageOne, linkOne);
-  await expect(pageOne.getByText(emailOne, { exact: true })).toBeVisible();
+  await expandDetails(pageOne);
+  await expect(pageOne.getByText(emailOne, { exact: true }).filter({visible:true})).toBeVisible();
   const linkTwo = await signUp(pageTwo, emailTwo);
   await confirm(pageTwo, linkTwo);
 
@@ -122,10 +124,14 @@ test("real signup, email confirmation, two users, refresh propagation and sign-o
   expect(renewed.expires_at).toBeGreaterThan(Math.floor(Date.now() / 1000));
   expect(renewed.refresh_token).not.toBe(stale.refresh_token);
   await pageOne.reload();
-  await expect(pageOne.getByText(emailOne, { exact: true })).toBeVisible();
+  await expandDetails(pageOne);
+  await expect(pageOne.getByText(emailOne, { exact: true }).filter({visible:true})).toBeVisible();
+  await expandDetails(pageOne);
   await expect(pageOne.getByText(emailTwo, { exact: true })).toHaveCount(0);
   privateResponse(await pageTwo.goto("/app"));
-  await expect(pageTwo.getByText(emailTwo, { exact: true })).toBeVisible();
+  await expandDetails(pageTwo);
+  await expect(pageTwo.getByText(emailTwo, { exact: true }).filter({visible:true})).toBeVisible();
+  await expandDetails(pageTwo);
   await expect(pageTwo.getByText(emailOne, { exact: true })).toHaveCount(0);
 
   // Exercise RSC responses as well as HTML against the same production server.
@@ -141,6 +147,7 @@ test("real signup, email confirmation, two users, refresh propagation and sign-o
     expect(body).toContain(own);
     expect(body).not.toContain(other);
   }
+  await expandDetails(pageOne);
   await pageOne.getByRole("button", { name: "Sign out" }).click();
   await expect(pageOne).toHaveURL(/\/sign-in\?message=signed-out$/);
   expect(await sessionCookies(one)).toHaveLength(0);
@@ -148,7 +155,8 @@ test("real signup, email confirmation, two users, refresh propagation and sign-o
     307,
   );
   await pageTwo.reload();
-  await expect(pageTwo.getByText(emailTwo, { exact: true })).toBeVisible();
+  await expandDetails(pageTwo);
+  await expect(pageTwo.getByText(emailTwo, { exact: true }).filter({visible:true})).toBeVisible();
 
   // Return-path attacks are tested through the real action and resulting URL.
   for (const next of [
@@ -158,11 +166,13 @@ test("real signup, email confirmation, two users, refresh propagation and sign-o
   ]) {
     await signIn(pageOne, emailOne, next);
     await expect(pageOne).toHaveURL("http://localhost:3100/app");
-    await pageOne.getByRole("button", { name: "Sign out" }).click();
+    await expandDetails(pageOne);
+  await pageOne.getByRole("button", { name: "Sign out" }).click();
     await expect(pageOne).toHaveURL(/signed-out/);
   }
   await signIn(pageOne, emailOne, "/app?tab=one");
   await expect(pageOne).toHaveURL("http://localhost:3100/app?tab=one");
+  await expandDetails(pageOne);
   await pageOne.getByRole("button", { name: "Sign out" }).click();
   await expect(pageOne).toHaveURL(/signed-out/);
   await pageOne.goto(linkOne);
@@ -183,6 +193,7 @@ test("recovery uses captured mail, changes the password and rejects reused links
   const email = uniqueEmail("recovery");
   const link = await signUp(page, email);
   await confirm(page, link);
+  await expandDetails(page);
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/signed-out/);
   await page.goto("/forgot-password");
@@ -282,6 +293,7 @@ test("expired confirmation and recovery mail, missing verifier and callback erro
 
   const confirmedEmail = uniqueEmail("expired-recovery");
   await confirm(page, await signUp(page, confirmedEmail));
+  await expandDetails(page);
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/signed-out/);
   await page.goto("/forgot-password");
@@ -335,7 +347,8 @@ test("real PKCE callback exchanges code, sets cookies and rejects replay and mis
   await missingVerifier.close();
   await page.goto(callback);
   await expect(page).toHaveURL("http://localhost:3100/app");
-  await expect(page.getByText(email, { exact: true })).toBeVisible();
+  await expandDetails(page);
+  await expect(page.getByText(email, { exact: true }).filter({visible:true})).toBeVisible();
   expect((await sessionCookies(context)).length).toBeGreaterThan(0);
   await page.goto(callback);
   await expect(page).toHaveURL(/\/auth\/error$/);

@@ -19,7 +19,7 @@ export async function captureState(page, name, heading) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       const results = await new AxeBuilder({ page }).withTags(["wcag2a","wcag2aa","wcag21aa"]).analyze();
       expect(results.violations.map(({id,nodes}) => ({id,targets:nodes.map((n) => n.target)}))).toEqual([]);
-      const targets = await page.locator("button:visible,.button:visible,label.checkbox-label:visible").evaluateAll((nodes) => nodes.map((node) => ({ text:node.textContent,height:node.getBoundingClientRect().height })));
+      const targets = await page.locator("button:visible,.button:visible,label.checkbox-label:visible,summary:visible").evaluateAll((nodes) => nodes.map((node) => ({ text:node.textContent,height:node.getBoundingClientRect().height })));
       expect(targets.filter((target) => target.height < 44)).toEqual([]);
     }
     if (directory) await page.screenshot({ path: resolve(directory, `${name}-${device}.png`), animations: "disabled" });

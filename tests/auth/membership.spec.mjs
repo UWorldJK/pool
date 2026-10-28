@@ -1,3 +1,4 @@
+import { expandDetails, visit, refresh } from "./helpers.mjs";
 import { test, expect } from "@playwright/test";
 import { account, family, invitation, openAndCheck } from "./helpers.mjs";
 
@@ -8,7 +9,7 @@ test("two real families and a guardian use manual invitations, explicit acceptan
   try {
     const ownerFamilyUrl = await family(owner.page, "Oak browser family", "Oak adult");
     const otherFamilyUrl = await family(other.page, "Elm browser family", "Elm adult");
-    await owner.page.getByLabel("Circle name").fill("Morning browser circle");
+    await expandDetails(owner.page);await owner.page.getByLabel("Circle name").fill("Morning browser circle");
     await owner.page.getByRole("button", { name: "Create circle", exact: true }).click();
     await owner.page.getByRole("link", { name: "Open saved membership" }).click();
     await expect(owner.page.getByRole("heading", { level: 1 })).toHaveText("Morning browser circle");
@@ -27,14 +28,14 @@ test("two real families and a guardian use manual invitations, explicit acceptan
     await other.page.getByLabel("I explicitly accept this circle family membership.").check();
     await other.page.getByRole("button", { name: "Accept invitation", exact: true }).click();
     await expect(other.page.getByRole("status")).toContainText("Membership accepted");
-    await other.page.goto(circleUrl);
-    await other.page.reload();
+    await visit(other.page,circleUrl);
+    await refresh(other.page);
     await expect(other.page.getByText("Oak browser family", { exact: false }).first()).toBeVisible();
     await expect(other.page.getByText("Elm browser family", { exact: false }).first()).toBeVisible();
     await expect(other.page.getByRole("button", { name: "Create circle invitation" })).toHaveCount(0);
-    await other.page.goto(ownerFamilyUrl);
+    await visit(other.page,ownerFamilyUrl);
     await expect(other.page.getByRole("heading", { name: "Membership unavailable" })).toBeVisible();
-    await owner.page.goto(ownerFamilyUrl);
+    await visit(owner.page,ownerFamilyUrl);
     const guardianLink = await invitation(owner.page, guardian.email, "guardian");
     await openAndCheck(guardian.page, guardianLink);
     await guardian.page.getByLabel("Your display name").fill("Oak guardian");
@@ -43,32 +44,32 @@ test("two real families and a guardian use manual invitations, explicit acceptan
     await guardian.page.getByRole("link", { name: "Open saved membership" }).click();
     await expect(guardian.page.getByText("Oak adult · owner", { exact: false }).first()).toBeVisible();
     await expect(guardian.page.getByRole("button", { name: "Create guardian invitation" })).toHaveCount(0);
-    await guardian.page.reload();
+    await refresh(guardian.page);
     await expect(guardian.page.getByText("Oak guardian · guardian", { exact: false }).first()).toBeVisible();
     // Reuse fails, and revocation is visible without exposing invitation email lists.
     await openAndCheck(guardian.page, guardianLink);
     await expect(guardian.page.locator('p[role="alert"]')).toContainText("already been used");
-    await owner.page.reload();
+    await refresh(owner.page);
     const revokedLink = await invitation(owner.page, guardian.email, "guardian");
-    await owner.page.reload();
+    await refresh(owner.page);
     await owner.page.getByRole("button", { name: "Revoke invitation", exact: true }).click();
     await openAndCheck(guardian.page, revokedLink);
     await expect(guardian.page.locator('p[role="alert"]')).toContainText("revoked");
-    await owner.page.reload();
+    await refresh(owner.page);
     const guardianRow = owner.page.getByRole("listitem").filter({ hasText: "Oak guardian · guardian" });
     await guardianRow.getByRole("checkbox").check();
     await guardianRow.getByRole("button", { name: "Remove guardian", exact: true }).click();
     await expect(guardianRow).toHaveCount(0);
-    await guardian.page.goto(ownerFamilyUrl);
+    await visit(guardian.page,ownerFamilyUrl);
     await expect(guardian.page.getByRole("heading", { name: "Membership unavailable" })).toBeVisible();
-    await owner.page.goto(circleUrl);
+    await visit(owner.page,circleUrl);
     const otherRow = owner.page.getByRole("listitem").filter({ hasText: "Elm browser family" });
     await otherRow.getByRole("checkbox").check();
     await otherRow.getByRole("button", { name: "Remove family from circle", exact: true }).click();
     await expect(otherRow).toHaveCount(0);
-    await other.page.goto(circleUrl);
+    await visit(other.page,circleUrl);
     await expect(other.page.getByRole("heading", { name: "Membership unavailable" })).toBeVisible();
-    await other.page.goto(otherFamilyUrl);
+    await visit(other.page,otherFamilyUrl);
     await other.page.setViewportSize({ width: 390, height: 844 });
     expect(await other.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await other.page.keyboard.press("Tab");

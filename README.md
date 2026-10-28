@@ -261,9 +261,10 @@ R7 is stacked on R6 and retains all production release restrictions.
 
 ## Pool visual design
 
-R8 carries the original Pool typography, palette, navigation and card composition
-through the real account, family, schedule, assignment and handoff screens. The
-full week and explicit driver/guardian responsibilities remain visible. See the
+R8 simplifies the real account, family, schedule, assignment and handoff screens
+with native system typography, quiet surfaces and the original Pool palette.
+Secondary controls open when needed; the full week and explicit driver/guardian
+responsibilities remain visible. See the
 [reference choices, intentional differences and desktop/phone screenshots](docs/visual-parity.md).
 R8 is stacked on R7; production still requires validated, protected, PR-merged
 current `main`.

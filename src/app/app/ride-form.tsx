@@ -1,4 +1,5 @@
 "use client";
+import { Disclosure } from "./presentation";
 import Link from "next/link";
 import { OutcomeFocus } from "./outcome-focus";
 import { startTransition, useActionState, useState, useSyncExternalStore } from "react";
@@ -40,5 +41,5 @@ export function SeatField({ value = "standard" }: { value?: string }) {
 }
 export function LocalTimeField({ name, label }: { name: string; label: string }) {
   return <><label>{label}<input type="datetime-local" name={`${name}_local`} required /></label>
-    <label>{label} repeated-hour choice<select name={name === "starts" ? "start_occurrence" : "end_occurrence"} defaultValue="reject"><option value="reject">Ask me if the hour repeats</option><option value="earlier">Earlier occurrence</option><option value="later">Later occurrence</option></select></label></>;
+    <Disclosure title={`${label}: daylight saving options`}><p>If this hour repeats, choose which occurrence you mean.</p><label>{label} repeated-hour choice<select name={name === "starts" ? "start_occurrence" : "end_occurrence"} defaultValue="reject"><option value="reject">Ask me if the hour repeats</option><option value="earlier">Earlier occurrence</option><option value="later">Later occurrence</option></select></label></Disclosure></>;
 }

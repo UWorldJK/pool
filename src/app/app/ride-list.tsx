@@ -1,8 +1,8 @@
 import { createReadOnlyClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { RouteSummary, StatusBadge } from "./presentation";
+import { StatusBadge } from "./presentation";
 import { rideTime, type RideOffer } from "@/lib/rides";
-import { coverageLabel, type DriverStatus } from "@/lib/drivers";
+import type { DriverStatus } from "@/lib/drivers";
 
 export async function RideList({ offers, statuses = [] }: { offers: RideOffer[]; statuses?: DriverStatus[] }) {
   const unique = [...new Map(offers.map((offer) => [offer.id, offer])).values()];
@@ -18,16 +18,25 @@ export async function RideList({ offers, statuses = [] }: { offers: RideOffer[];
     const trip = trips.data.find((item) => item.ride_id === ride.id);
     const awaiting = handoffs.data.filter((item) => item.ride_id === ride.id && item.status === "awaiting_handoff").length;
     const hiddenCoverage = !status && ride.status !== "joined";
-    const label = ride.cancelled_at ? "Cancelled" : trip?.completed_at ? "Ride completed" : awaiting ? "Guardian receipt needed" : trip ? "Trip in progress" : hiddenCoverage ? "Private ride summary" : status?.coverage === "confirmed" ? "Driver confirmed" : status?.coverage === "awaiting_confirmation" ? "Replies needed" : "Needs a driver";
+    const label = ride.cancelled_at ? "Cancelled" : trip?.completed_at ? "Ride completed" : awaiting ? "Guardian receipt needed" : trip ? "Trip in progress" : hiddenCoverage ? "Private ride summary" : status?.coverage === "confirmed" ? "Driver confirmed" : status?.coverage === "awaiting_confirmation" ? "Driver not confirmed" : "Needs a driver";
     const tone = ride.cancelled_at || hiddenCoverage ? "neutral" : trip?.completed_at ? "positive" : awaiting || (!trip && status?.coverage !== "confirmed") ? "attention" : "positive";
-    return <li key={ride.id}>
-      <div className="ride-card-top"><Link href={`/app/rides/${ride.id}`}>{ride.pickup_summary} → {ride.destination_summary}</Link><StatusBadge tone={tone}>{label}</StatusBadge></div>
-      <RouteSummary pickup={ride.pickup_summary} destination={ride.destination_summary} />
-      <p>{ride.direction === "return" ? "Return" : "Outbound"} · {ride.cancelled_at ? "Cancelled" : hiddenCoverage ? "Join to view driver status" : coverageLabel(status?.coverage)}</p>
-      {status?.mode !== "initial" && status?.proposal_status === "pending" && <p className="notice">Replacement review pending · {status.coverage === "confirmed" ? "Original driver remains assigned" : "Uncovered until replacement confirms"} · {status.accepted_at ? "Driver accepted" : "Driver reply required"} · {status.rider_count-status.consent_count} child consents outstanding · Deadline: {rideTime(status.deadline,status.timezone)}</p>}
-      {trip && <p>Manually reported: {trip.completed_at ? "Ride completed" : "Trip in progress — handoffs remain"}</p>}
-      {!!awaiting && <p>{awaiting} awaiting explicit guardian receipt.</p>}
-      <div className="ride-meta"><p>Pickup: {rideTime(ride.starts_at, ride.timezone)}<br />Drop-off: {rideTime(ride.ends_at, ride.timezone)}<br />{ride.timezone}</p><p>Your family responses: {[...new Set(offers.filter((offer) => offer.id === ride.id).map((offer) => offer.status))].join(", ")}</p></div>
-    </li>;
+    const day = new Date(ride.starts_at);
+    const date = new Intl.DateTimeFormat("en", { day:"numeric",timeZone:ride.timezone }).format(day);
+    const weekday = new Intl.DateTimeFormat("en", { weekday:"short",timeZone:ride.timezone }).format(day);
+    const driver = !ride.cancelled_at && (status?.coverage === "confirmed" || trip?.completed_at) ? status?.current_driver_name || status?.driver_name : null;
+    const pending = !ride.cancelled_at && status?.proposal_status === "pending";
+    return <li key={ride.id}><div className="ride-row">
+      <div className="ride-date" aria-hidden="true">{weekday}<strong>{date}</strong></div>
+      <div><div className="ride-card-top"><Link href={`/app/rides/${ride.id}`}>{ride.pickup_summary} → {ride.destination_summary}</Link><StatusBadge tone={tone}>{label}</StatusBadge></div>
+        <div className="ride-meta"><p>{ride.direction === "return" ? "Return" : "Outbound"} · Pickup: {rideTime(ride.starts_at, ride.timezone)}</p><p>Drop-off: {rideTime(ride.ends_at, ride.timezone)}</p></div>
+        {driver && <p>{trip?.completed_at ? "Trip driver" : "Driver"}: {driver}</p>}
+        {pending && <p>{status.mode === "initial" ? "Driver proposal" : "Replacement review"}: {status.driver_name} · {status.accepted_at ? "Driver accepted" : "Driver reply needed"} · {status.rider_count-status.consent_count} child consents needed{status.mode !== "initial" && (status.coverage === "confirmed" ? " · Original driver remains assigned" : " · Uncovered until replacement confirms")}</p>}
+        {pending && status.coverage !== "confirmed" && <p>Uncovered until driver acceptance and every child’s consent.</p>}
+        {pending && <p>Reply by {rideTime(status.deadline,status.timezone)}</p>}
+        {!!awaiting && <p>{awaiting} awaiting explicit guardian receipt.</p>}
+        {hiddenCoverage && <p>Join to view driver status.</p>}
+        {offers.some((offer) => offer.id === ride.id && offer.status !== "joined") && <p>Your family: {[...new Set(offers.filter((offer) => offer.id === ride.id).map((offer) => offer.status))].join(", ")}</p>}
+      </div>
+    </div></li>;
   })}</ul>;
 }

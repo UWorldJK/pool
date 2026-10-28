@@ -16,9 +16,9 @@ export default async function ApplicationLayout({
   return (
     <>
       <a className="skip-link" href="#main-content">Skip to main content</a>
-      <ApplicationNav />
+      <ApplicationNav account={<details className="account-menu"><summary>Account</summary><p>{user.email}</p><AuthForm mode="sign-out" /></details>} />
       <div className="application-shell">
-        <header className="topbar"><p>Your family <span aria-hidden="true"> / </span> Pool</p><div className="account-controls"><p className="account-email">Signed in as <strong>{user.email}</strong></p><AuthForm mode="sign-out" /></div></header>
+
         <main id="main-content" tabIndex={-1} className="page-content">{children}</main>
       </div>
     </>
