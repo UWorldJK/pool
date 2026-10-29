@@ -1,5 +1,10 @@
 # Pool development roadmap
 
+> Platform decisions in this historical roadmap are superseded by the Expo
+> migration in PR #10. The shared application targets responsive web and iOS;
+> see [the migration record](expo-migration/README.md). Backend milestones and
+> actor-authority rules are retained.
+
 Planning date: October 26, 2026 (America/Denver). **Proposed plan, not an
 approved specification or a record of implemented capabilities.**
 
@@ -54,7 +59,6 @@ guidance. The export has a malformed font import; use the distribution to establ
 DM Sans/Manrope rendering, preserving every reference file unchanged. Continue on
 existing PR #10 and `lkluge/web-visual-parity`; no new branch/PR or release.
 
-
 Inspected both `sites/pool-prototype/dist` and
 `sites/pool-prototype-v3/dist`, v3's `DESIGN-NOTES.md`,
 `tests/model.test.cjs`, and `exports/pool-v3.html`. The bundled v3 `dist/v1/`
@@ -62,16 +66,16 @@ files match the original reference. The standalone export embeds the same model;
 its application script differs only by making the original-site link absolute.
 No external Claude artifact was needed to establish the local behavior.
 
-| Topic | Original reference | V3 correction / implementation consequence |
-| --- | --- | --- |
-| Visual authority | Original visual character was the earlier R8 direction. | The v3 export is authoritative for typography, palette, shell, mobile navigation, density, route cards and dialog patterns. The original is secondary historical context. Real capabilities and actor authority remain mandatory. |
-| Driver unavailable versus optional swap | Keeps the original driver assigned throughout a change; no unavailable state; incomplete confirmations can stay pending indefinitely. | v3 clears an unavailable driver immediately. Decline, cancellation, and expiry leave that ride uncovered. Only a genuinely available driver stays assigned during an optional swap. Preserve this in R5/R7. |
-| Approval authority | Demo controls simulate every family and driver; a final button applies the change. | v3 separates the parent's own approval from simulation tools and commits after all required replies. Real actors may respond only for themselves/their children; no override button can fabricate others' consent. |
-| Arrival and receipt | Handoff copy is explicit, but arrival exists only inside a preview and the model has one `arrived` flag. | v3 persists `awaiting` separately from `complete`. R6 needs child-specific pickup, driver-reported arrival, and recipient-confirmed handoff; a ride-wide flag cannot represent all children. |
-| Route and seats | Planning has one location/direction field, and choosing oneself as driver bypasses the claim checkbox. Some vehicle displays fall back to the wrong person's vehicle. | v3 separates pickup/destination and checks seats in planning UI. Store real routes and vehicles; validate capacity and restraint acknowledgment on the server/database too. |
-| Schedule and status | Direction tabs and reassuring coverage copy can obscure open needs. | Retain all directions in the weekly view and a needs-attention list; distinguish proposal, confirmed driver, unavailable driver, and missing receipt. |
-| Location | Illustrative maps and sample ETAs can look operational. | v3 removes the current ETA when updates are stale. Neither version implements GPS. M1 has no map, live position, ETA, or claim that sharing has started/stopped. |
-| Trust and visibility | Mentions approved circles; some copy limits exact pickup details to drivers, elsewhere to participants. | Adopt an explicit access matrix below: circle membership is separate from child/ride consent; exact trip details are limited to participating families and the confirmed driver. This is a proposed resolution. |
+| Topic                                   | Original reference                                                                                                                                                    | V3 correction / implementation consequence                                                                                                                                                                                        |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Visual authority                        | Original visual character was the earlier R8 direction.                                                                                                               | The v3 export is authoritative for typography, palette, shell, mobile navigation, density, route cards and dialog patterns. The original is secondary historical context. Real capabilities and actor authority remain mandatory. |
+| Driver unavailable versus optional swap | Keeps the original driver assigned throughout a change; no unavailable state; incomplete confirmations can stay pending indefinitely.                                 | v3 clears an unavailable driver immediately. Decline, cancellation, and expiry leave that ride uncovered. Only a genuinely available driver stays assigned during an optional swap. Preserve this in R5/R7.                       |
+| Approval authority                      | Demo controls simulate every family and driver; a final button applies the change.                                                                                    | v3 separates the parent's own approval from simulation tools and commits after all required replies. Real actors may respond only for themselves/their children; no override button can fabricate others' consent.                |
+| Arrival and receipt                     | Handoff copy is explicit, but arrival exists only inside a preview and the model has one `arrived` flag.                                                              | v3 persists `awaiting` separately from `complete`. R6 needs child-specific pickup, driver-reported arrival, and recipient-confirmed handoff; a ride-wide flag cannot represent all children.                                      |
+| Route and seats                         | Planning has one location/direction field, and choosing oneself as driver bypasses the claim checkbox. Some vehicle displays fall back to the wrong person's vehicle. | v3 separates pickup/destination and checks seats in planning UI. Store real routes and vehicles; validate capacity and restraint acknowledgment on the server/database too.                                                       |
+| Schedule and status                     | Direction tabs and reassuring coverage copy can obscure open needs.                                                                                                   | Retain all directions in the weekly view and a needs-attention list; distinguish proposal, confirmed driver, unavailable driver, and missing receipt.                                                                             |
+| Location                                | Illustrative maps and sample ETAs can look operational.                                                                                                               | v3 removes the current ETA when updates are stale. Neither version implements GPS. M1 has no map, live position, ETA, or claim that sharing has started/stopped.                                                                  |
+| Trust and visibility                    | Mentions approved circles; some copy limits exact pickup details to drivers, elsewhere to participants.                                                               | Adopt an explicit access matrix below: circle membership is separate from child/ride consent; exact trip details are limited to participating families and the confirmed driver. This is a proposed resolution.                   |
 
 The prototypes are behavioral examples, not an authorization implementation.
 Names, three-family approval lists, dates, vehicles, and clocks are hard-coded.
@@ -84,16 +88,16 @@ logs, invitations, notifications, calls, and availability suggestions are simula
 
 ## Milestones and ordered chain
 
-| Order | Proposed PR title | Branch | Demonstrable result |
-| --- | --- | --- | --- |
-| R1 | Add automated checks and gated Vercel delivery | `lkluge/ci-vercel-delivery` | Tested container builds and a verified path to isolated previews and production. |
-| R2 | Add real sign-in and session-aware application shell | `lkluge/auth-session-flow` | An adult can sign in, refresh, sign out, and reach a protected empty app. |
-| R3 | Add families, circles, and secure membership invitations | `lkluge/family-circle-membership` | Two real families join a circle through authorized, persisted invitations. |
-| R4 | Add persisted ride planning and family rider enrollment | `lkluge/ride-planning` | Families create, join, and view actual scheduled rides with distinct pickup/drop-off. |
-| R5 | Add driver acceptance, child consent, and capacity enforcement | `lkluge/driver-confirmation` | A ride acquires one valid, consenting driver; all participants see the same saved plan. **M1 complete.** |
-| R6 | Add pickup, arrival, and child handoff confirmation | `lkluge/ride-handoffs` | Actual adults report trip events and confirm receipt per child. |
-| R7 | Add replacement requests and family approvals | `lkluge/driver-replacements` | Optional swaps and unavailable-driver replacements follow real approval/deadline rules. **M2 complete.** |
-| R8 | Match Pool v3 with real workflows | `lkluge/web-visual-parity` | The working app closely matches v3 while retaining real records and corrected behavior. |
+| Order | Proposed PR title                                              | Branch                            | Demonstrable result                                                                                      |
+| ----- | -------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| R1    | Add automated checks and gated Vercel delivery                 | `lkluge/ci-vercel-delivery`       | Tested container builds and a verified path to isolated previews and production.                         |
+| R2    | Add real sign-in and session-aware application shell           | `lkluge/auth-session-flow`        | An adult can sign in, refresh, sign out, and reach a protected empty app.                                |
+| R3    | Add families, circles, and secure membership invitations       | `lkluge/family-circle-membership` | Two real families join a circle through authorized, persisted invitations.                               |
+| R4    | Add persisted ride planning and family rider enrollment        | `lkluge/ride-planning`            | Families create, join, and view actual scheduled rides with distinct pickup/drop-off.                    |
+| R5    | Add driver acceptance, child consent, and capacity enforcement | `lkluge/driver-confirmation`      | A ride acquires one valid, consenting driver; all participants see the same saved plan. **M1 complete.** |
+| R6    | Add pickup, arrival, and child handoff confirmation            | `lkluge/ride-handoffs`            | Actual adults report trip events and confirm receipt per child.                                          |
+| R7    | Add replacement requests and family approvals                  | `lkluge/driver-replacements`      | Optional swaps and unavailable-driver replacements follow real approval/deadline rules. **M2 complete.** |
+| R8    | Match Pool v3 with real workflows                              | `lkluge/web-visual-parity`        | The working app closely matches v3 while retaining real records and corrected behavior.                  |
 
 This keeps infrastructure, authentication, membership, planning, and driver
 confirmation independently reviewable. Each schema addition arrives with its
@@ -129,22 +133,22 @@ These are recommendations for scoping the PRs. Confirm material product changes
 before their owning PR; do not treat this document as prior approval of accounts,
 subscriptions, provider settings, or policy choices.
 
-| Decision | Recommended planning default | Resolve by |
-| --- | --- | --- |
-| Platform | Next.js remains both web UI and server application layer; Supabase supplies Postgres/Auth. No Java service. React Native/Expo is a separate future platform decision; no native project is created here. | Fixed scope of this roadmap |
-| Sign-in | Email/password with email confirmation and password recovery; adult accounts only. Use local captured mail for development and configured SMTP for hosted accounts. Social login/MFA are separate work. | R2 |
-| Family authority | A child belongs to one family record for M1; multiple adult guardians may belong to that family. Guardians may enroll/consent only for their own family's children. One owner manages guardian invitations/removal; protect the last owner. Cross-household custody is deferred. | R3/R4 |
-| Circle authority | A circle is the coordination group, not a team-wide permission grant. A designated adult coordinator manages family membership, not other families' child consent. An adult can belong to multiple families/circles; every command names and verifies its context. | R3 |
-| Invitations | Expiring, single-use, email-bound links copied by an authorized user and delivered manually. Default expiry: seven days. Family invitation and circle invitation are distinct scopes. Automated invitation email is deferred; account confirmation/recovery email is required. | R3 |
-| Initial driver approval | Explicit consent per child for this ride's proposed driver and plan revision. One guardian action may cover all their own enrolled children. No standing trust list or invitation counts as consent. | R5 |
-| Ride shape | One occurrence, one common pickup and one common destination, one vehicle/driver, multiple children. Include expected end time for conflict checks and an IANA timezone. Recurrence, multi-stop routing, and carpools needing multiple vehicles are deferred. | R4 |
-| Capacity | Passenger seats exclude the driver. All enrolled riders occupy a seat for the entire interval. Driver explicitly attests to required restraints; do not label this independently verified. | R5 |
-| Visibility | Invited families get a minimal invitation summary; joined families and confirmed driver get exact trip details. Proposed drivers get time, coarse route, counts, and necessary restraint requirements before acceptance, without unrelated child records/addresses. Other circle members get no ride directory. | R4/R5 |
-| Changes to a confirmed plan | No general editing in M1: cancel/recreate or withdraw the assignment and start a new proposal. No silent carryover of consent to a changed roster, route, time, driver, or vehicle. | R5 |
-| Handoff recipient | An enrolled child's designated active guardian confirms receipt; driver status alone grants no receiving authority. Confirm whether a driver who is also that child's designated guardian may perform both roles. External recipients are deferred. | R6 |
-| Hosting | Keep Vercel containers. Recommend GitHub Actions owning ordered delivery through the Vercel CLI, with competing Git-triggered deployments disabled. This deliberately revises the existing docs' proposed direct Git auto-deploy path to prevent migration races. | R1 |
-| Hosted setup | Identify Vercel project/team, test and production Supabase projects, environment owners, SMTP sender, redirect origins, deployment protection, and any spending approval. None is verified by this plan. | R1/R2 |
-| Pilot retention | Decide retention/deletion for child and trip records, responsible contact, and account-removal handling before using real family data. Do not collect birth dates, school rosters, or full license plates just to reproduce sample UI. | Before real-data pilot |
+| Decision                    | Recommended planning default                                                                                                                                                                                                                                                                                    | Resolve by                  |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Platform                    | Next.js remains both web UI and server application layer; Supabase supplies Postgres/Auth. No Java service. React Native/Expo is a separate future platform decision; no native project is created here.                                                                                                        | Fixed scope of this roadmap |
+| Sign-in                     | Email/password with email confirmation and password recovery; adult accounts only. Use local captured mail for development and configured SMTP for hosted accounts. Social login/MFA are separate work.                                                                                                         | R2                          |
+| Family authority            | A child belongs to one family record for M1; multiple adult guardians may belong to that family. Guardians may enroll/consent only for their own family's children. One owner manages guardian invitations/removal; protect the last owner. Cross-household custody is deferred.                                | R3/R4                       |
+| Circle authority            | A circle is the coordination group, not a team-wide permission grant. A designated adult coordinator manages family membership, not other families' child consent. An adult can belong to multiple families/circles; every command names and verifies its context.                                              | R3                          |
+| Invitations                 | Expiring, single-use, email-bound links copied by an authorized user and delivered manually. Default expiry: seven days. Family invitation and circle invitation are distinct scopes. Automated invitation email is deferred; account confirmation/recovery email is required.                                  | R3                          |
+| Initial driver approval     | Explicit consent per child for this ride's proposed driver and plan revision. One guardian action may cover all their own enrolled children. No standing trust list or invitation counts as consent.                                                                                                            | R5                          |
+| Ride shape                  | One occurrence, one common pickup and one common destination, one vehicle/driver, multiple children. Include expected end time for conflict checks and an IANA timezone. Recurrence, multi-stop routing, and carpools needing multiple vehicles are deferred.                                                   | R4                          |
+| Capacity                    | Passenger seats exclude the driver. All enrolled riders occupy a seat for the entire interval. Driver explicitly attests to required restraints; do not label this independently verified.                                                                                                                      | R5                          |
+| Visibility                  | Invited families get a minimal invitation summary; joined families and confirmed driver get exact trip details. Proposed drivers get time, coarse route, counts, and necessary restraint requirements before acceptance, without unrelated child records/addresses. Other circle members get no ride directory. | R4/R5                       |
+| Changes to a confirmed plan | No general editing in M1: cancel/recreate or withdraw the assignment and start a new proposal. No silent carryover of consent to a changed roster, route, time, driver, or vehicle.                                                                                                                             | R5                          |
+| Handoff recipient           | An enrolled child's designated active guardian confirms receipt; driver status alone grants no receiving authority. Confirm whether a driver who is also that child's designated guardian may perform both roles. External recipients are deferred.                                                             | R6                          |
+| Hosting                     | Keep Vercel containers. Recommend GitHub Actions owning ordered delivery through the Vercel CLI, with competing Git-triggered deployments disabled. This deliberately revises the existing docs' proposed direct Git auto-deploy path to prevent migration races.                                               | R1                          |
+| Hosted setup                | Identify Vercel project/team, test and production Supabase projects, environment owners, SMTP sender, redirect origins, deployment protection, and any spending approval. None is verified by this plan.                                                                                                        | R1/R2                       |
+| Pilot retention             | Decide retention/deletion for child and trip records, responsible contact, and account-removal handling before using real family data. Do not collect birth dates, school rosters, or full license plates just to reproduce sample UI.                                                                          | Before real-data pilot      |
 
 ## Shared technical contract
 
@@ -155,13 +159,13 @@ server timestamps, non-null requirements, explicit constraints and indexes, and
 versioned SQL migrations. Add checked-in generated database types with each schema
 PR. Changes must work from both a clean reset and the preceding merged schema.
 
-| Added in | Data | Key invariants |
-| --- | --- | --- |
-| R3 | `profiles`, `families`, `family_members`, `circles`, `circle_families`, `invitations` | Profile references Auth UUID; unique active memberships; authorized owner/coordinator; exactly one invitation target scope; token digest only, normalized verified email, expiry/revocation/consumption metadata. |
-| R4 | `children`, `rides`, `ride_families`, `ride_riders`, `ride_locations` | Child has owning family; ride has one circle, creator, start/end/timezone, revision and cancellation state; enrolled family belongs to circle; one rider per child per ride; family/child/ride consistency enforced. Separate exact locations from minimal summaries. |
-| R5 | `vehicles`, `driver_proposals`, `ride_driver_consents`, `driver_assignments` | Vehicle belongs to driver, positive integral passenger capacity; proposals reference a frozen ride revision and vehicle version; consent unique per proposal/child with actor/time; one active assignment per ride; no overlapping accepted driver/vehicle reservations. |
-| R6 | `ride_events` and per-rider progress/recipient fields | Append-only actor/timestamp events; event write and state transition are one transaction; no client-supplied actor/timestamp; terminal child completion cannot reopen. |
-| R7 | Extend proposals with replacement mode/current-assignment reference and approval deadline | At most one pending proposal per ride; all replies bind to its revision; preserve declined/cancelled/expired history; finalization replaces an assignment once, atomically. |
+| Added in | Data                                                                                      | Key invariants                                                                                                                                                                                                                                                           |
+| -------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R3       | `profiles`, `families`, `family_members`, `circles`, `circle_families`, `invitations`     | Profile references Auth UUID; unique active memberships; authorized owner/coordinator; exactly one invitation target scope; token digest only, normalized verified email, expiry/revocation/consumption metadata.                                                        |
+| R4       | `children`, `rides`, `ride_families`, `ride_riders`, `ride_locations`                     | Child has owning family; ride has one circle, creator, start/end/timezone, revision and cancellation state; enrolled family belongs to circle; one rider per child per ride; family/child/ride consistency enforced. Separate exact locations from minimal summaries.    |
+| R5       | `vehicles`, `driver_proposals`, `ride_driver_consents`, `driver_assignments`              | Vehicle belongs to driver, positive integral passenger capacity; proposals reference a frozen ride revision and vehicle version; consent unique per proposal/child with actor/time; one active assignment per ride; no overlapping accepted driver/vehicle reservations. |
+| R6       | `ride_events` and per-rider progress/recipient fields                                     | Append-only actor/timestamp events; event write and state transition are one transaction; no client-supplied actor/timestamp; terminal child completion cannot reopen.                                                                                                   |
+| R7       | Extend proposals with replacement mode/current-assignment reference and approval deadline | At most one pending proposal per ride; all replies bind to its revision; preserve declined/cancelled/expired history; finalization replaces an assignment once, atomically.                                                                                              |
 
 Keep base child records private to their family. Store only necessary ride-specific
 child display/seat information as enrollment snapshots, or provide an equally
@@ -210,16 +214,16 @@ timestamps, capacity snapshots, or tenant identifiers without validation.
 
 ### Read and mutation authority
 
-| Actor | Allowed | Denied |
-| --- | --- | --- |
-| Signed out | Auth screens; application liveness | Application rows and commands |
-| Family guardian | Own child management/enrollment; own children's consent; joined ride details | Another family's child edit/consent; invitation administration without owner/coordinator role |
-| Family owner | Guardian invitations/removal for that family | Self-joining another family or giving oneself circle coordinator rights |
-| Circle coordinator | Invite/remove families; limited circle roster | Blanket access to every child's records or automatic authority to accept/approve a driver |
-| Invited family | Minimal ride offer; accept/decline and enroll own children | Detailed roster/locations before participation; editing creator's plan |
-| Proposed driver | Minimal proposal and relevant seat/restraint needs; own acceptance/decline | Exact private pickup notes before confirmation; acceptance for another driver |
-| Confirmed driver | Exact assigned trip details; later R6 pickup/arrival reports | Guardian consent or handoff solely because they are driving |
-| Unrelated or removed member | No continuing private access | Guessed-ID reads/writes, direct table updates, stale-session membership claims |
+| Actor                       | Allowed                                                                      | Denied                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Signed out                  | Auth screens; application liveness                                           | Application rows and commands                                                                 |
+| Family guardian             | Own child management/enrollment; own children's consent; joined ride details | Another family's child edit/consent; invitation administration without owner/coordinator role |
+| Family owner                | Guardian invitations/removal for that family                                 | Self-joining another family or giving oneself circle coordinator rights                       |
+| Circle coordinator          | Invite/remove families; limited circle roster                                | Blanket access to every child's records or automatic authority to accept/approve a driver     |
+| Invited family              | Minimal ride offer; accept/decline and enroll own children                   | Detailed roster/locations before participation; editing creator's plan                        |
+| Proposed driver             | Minimal proposal and relevant seat/restraint needs; own acceptance/decline   | Exact private pickup notes before confirmation; acceptance for another driver                 |
+| Confirmed driver            | Exact assigned trip details; later R6 pickup/arrival reports                 | Guardian consent or handoff solely because they are driving                                   |
+| Unrelated or removed member | No continuing private access                                                 | Guessed-ID reads/writes, direct table updates, stale-session membership claims                |
 
 Membership removal must take effect on subsequent reads/commands without relying
 on stale JWT role claims. R5 extends membership changes to invalidate affected
@@ -230,12 +234,12 @@ receipt workflow. Account deletion and emergency operations need separate design
 
 ## Delivery and validation contract
 
-| Environment | Database/Auth | Configuration and authority |
-| --- | --- | --- |
-| Developer machine | Existing Supabase CLI containers | Ignored local environment; public browser URL, server-only internal URL in Docker. Never reset the user's existing backend as a test shortcut. |
-| PR checks | Disposable local Supabase when schema/Auth tests need it | Fresh test identities and fixture data; no cloud credentials required to run mandatory checks. |
-| Hosted preview/test | One separate Supabase test project initially | Test public URL/key only; synthetic data; trusted preview migrations serialized. No production user/data copies. |
-| Production | Separate production Supabase project | Production public build/runtime settings; protected release credentials; only reviewed merged migrations. |
+| Environment         | Database/Auth                                            | Configuration and authority                                                                                                                    |
+| ------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Developer machine   | Existing Supabase CLI containers                         | Ignored local environment; public browser URL, server-only internal URL in Docker. Never reset the user's existing backend as a test shortcut. |
+| PR checks           | Disposable local Supabase when schema/Auth tests need it | Fresh test identities and fixture data; no cloud credentials required to run mandatory checks.                                                 |
+| Hosted preview/test | One separate Supabase test project initially             | Test public URL/key only; synthetic data; trusted preview migrations serialized. No production user/data copies.                               |
+| Production          | Separate production Supabase project                     | Production public build/runtime settings; protected release credentials; only reviewed merged migrations.                                      |
 
 R1 should use a small checked workflow with Vercel's remote container build and
 registry, not a second registry or deployment platform. The container path and

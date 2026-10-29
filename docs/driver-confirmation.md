@@ -58,8 +58,8 @@ membership and enrollment explicitly, or cancel/recreate the ride.
 `20261027000300_driver_confirmation.sql` is additive after the unchanged R3/R4
 migrations. The four new tables have RLS, explicit authenticated SELECT policies
 and no application table-write grants. Public invoker wrappers call checked
-private definer routines with fixed empty search paths. Normal Server Actions
-continue to authenticate via Auth and use public keys with user cookies; no
+private definer routines with fixed empty search paths. Shared commands
+continue to authenticate via Auth and use public keys with user sessions; no
 privileged session client or alternate API was added.
 
 | Data | Visibility |
@@ -119,7 +119,7 @@ Chromium journeys. It never resets the developer's existing backend. Use
 checks. Actual assertions use normal sessions; privileged credentials are confined
 to disposable fixture creation and deliberate corruption/lock scenarios.
 
-R5 adds `scripts/driver-permissions.mjs`, driver Server Action regressions and
+R5 adds `scripts/driver-permissions.mjs`, driver command-service regressions and
 `tests/auth/drivers.spec.mjs`. These cover full M1 consent/acceptance and reload,
 authority/privacy denials, child-specific missing consent, self nomination,
 insufficient/invalid seats, missing restraint acknowledgment, expired and delayed

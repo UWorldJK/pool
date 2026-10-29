@@ -48,7 +48,7 @@ circle metadata and a limited family-name roster, not other family records,
 profiles or Auth emails. Invitation tables have no client SELECT or write grants,
 even for administrators; scoped history/preview functions return safe projections.
 Every direct application table write is denied. Session clients use only public
-keys and user cookies, including Server Actions.
+keys and authenticated user sessions, including shared command services.
 
 Public invoker RPC wrappers call checked definer implementations in the
 non-exposed `pool_private` schema, with an empty search path and qualified names.
