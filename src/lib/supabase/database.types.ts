@@ -265,6 +265,58 @@ isOneToOne: false
       referencedColumns: ["id","ride_id","ride_revision","driver_id","vehicle_id","vehicle_version"]
     }
                   ]
+                },"ride_event_requests": {
+                  Row: {
+                    "acknowledged_at": string,"actor_id": string,"child_id": string,"event_id": string,"kind": string,"previous_version": number,"request_id": string,"ride_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acknowledged_at"?: string,"actor_id": string,"child_id": string,"event_id": string,"kind": string,"previous_version": number,"request_id": string,"ride_id": string
+                  }
+                  Update: {
+                    "acknowledged_at"?: string,"actor_id"?: string,"child_id"?: string,"event_id"?: string,"kind"?: string,"previous_version"?: number,"request_id"?: string,"ride_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ride_event_requests_event_id_ride_id_child_id_kind_previou_fkey"
+      columns: ["event_id","ride_id","child_id","kind","previous_version","actor_id"]
+isOneToOne: false
+      referencedRelation: "ride_events"
+      referencedColumns: ["request_id","ride_id","child_id","kind","previous_version","actor_id"]
+    }
+                  ]
+                },"ride_events": {
+                  Row: {
+                    "actor_id": string,"actor_name": string,"child_id": string,"kind": string,"occurred_at": string,"previous_version": number,"request_id": string,"ride_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id": string,"actor_name": string,"child_id": string,"kind": string,"occurred_at"?: string,"previous_version": number,"request_id": string,"ride_id": string
+                  }
+                  Update: {
+                    "actor_id"?: string,"actor_name"?: string,"child_id"?: string,"kind"?: string,"occurred_at"?: string,"previous_version"?: number,"request_id"?: string,"ride_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ride_events_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ride_events_ride_id_child_id_fkey"
+      columns: ["ride_id","child_id"]
+isOneToOne: false
+      referencedRelation: "ride_handoffs"
+      referencedColumns: ["ride_id","child_id"]
+    },{
+      foreignKeyName: "ride_events_ride_id_fkey"
+      columns: ["ride_id"]
+isOneToOne: false
+      referencedRelation: "ride_trips"
+      referencedColumns: ["ride_id"]
+    }
+                  ]
                 },"ride_families": {
                   Row: {
                     "circle_id": string,"family_id": string,"responded_at": string | null,"ride_id": string,"status": string
@@ -289,6 +341,38 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "rides"
       referencedColumns: ["id","circle_id"]
+    }
+                  ]
+                },"ride_handoffs": {
+                  Row: {
+                    "arrived_at": string | null,"child_id": string,"completed_at": string | null,"designated_at": string,"designated_by": string,"family_id": string,"picked_up_at": string | null,"recipient_id": string,"recipient_name": string,"ride_id": string,"status": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "arrived_at"?: string | null,"child_id": string,"completed_at"?: string | null,"designated_at"?: string,"designated_by": string,"family_id": string,"picked_up_at"?: string | null,"recipient_id": string,"recipient_name": string,"ride_id": string,"status"?: string,"version"?: number
+                  }
+                  Update: {
+                    "arrived_at"?: string | null,"child_id"?: string,"completed_at"?: string | null,"designated_at"?: string,"designated_by"?: string,"family_id"?: string,"picked_up_at"?: string | null,"recipient_id"?: string,"recipient_name"?: string,"ride_id"?: string,"status"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ride_handoffs_family_id_designated_by_fkey"
+      columns: ["family_id","designated_by"]
+isOneToOne: false
+      referencedRelation: "family_members"
+      referencedColumns: ["family_id","user_id"]
+    },{
+      foreignKeyName: "ride_handoffs_family_id_recipient_id_fkey"
+      columns: ["family_id","recipient_id"]
+isOneToOne: false
+      referencedRelation: "family_members"
+      referencedColumns: ["family_id","user_id"]
+    },{
+      foreignKeyName: "ride_handoffs_ride_id_child_id_family_id_fkey"
+      columns: ["ride_id","child_id","family_id"]
+isOneToOne: false
+      referencedRelation: "ride_riders"
+      referencedColumns: ["ride_id","child_id","family_id"]
     }
                   ]
                 },"ride_locations": {
@@ -335,6 +419,32 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "ride_families"
       referencedColumns: ["ride_id","family_id"]
+    }
+                  ]
+                },"ride_trips": {
+                  Row: {
+                    "assignment_id": string,"completed_at": string | null,"ride_id": string,"ride_revision": number,"started_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assignment_id": string,"completed_at"?: string | null,"ride_id": string,"ride_revision": number,"started_at"?: string
+                  }
+                  Update: {
+                    "assignment_id"?: string,"completed_at"?: string | null,"ride_id"?: string,"ride_revision"?: number,"started_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ride_trips_assignment_id_ride_id_ride_revision_fkey"
+      columns: ["assignment_id","ride_id","ride_revision"]
+isOneToOne: false
+      referencedRelation: "driver_assignments"
+      referencedColumns: ["id","ride_id","ride_revision"]
+    },{
+      foreignKeyName: "ride_trips_ride_id_fkey"
+      columns: ["ride_id"]
+isOneToOne: true
+      referencedRelation: "rides"
+      referencedColumns: ["id"]
     }
                   ]
                 },"rides": {
@@ -418,6 +528,9 @@ isOneToOne: false
               "family_id": string,"family_name": string
             }[]
                            },
+"confirm_handoff":
+{ Args: { "p_child_id": string,"p_request_id": string,"p_revision": number,"p_ride_id": string,"p_version": number }; Returns: string
+                           },
 "consent_for_own_children":
 { Args: { "p_child_ids": (string)[],"p_family_id": string,"p_id": string,"p_revision": number }; Returns: string
                            },
@@ -437,6 +550,9 @@ isOneToOne: false
                            },
 "decline_driver_proposal":
 { Args: { "p_id": string,"p_revision": number }; Returns: string
+                           },
+"designate_recipient":
+{ Args: { "p_child_id": string,"p_recipient_id": string,"p_revision": number,"p_ride_id": string,"p_version": number }; Returns: number
                            },
 "driver_inbox":
 { Args: { "p_after_id"?: string,"p_after_start"?: string,"p_limit"?: number,"p_pending_only"?: boolean }; Returns: {
@@ -471,11 +587,17 @@ isOneToOne: false
 "propose_driver":
 { Args: { "p_driver_family_id": string,"p_driver_id": string,"p_family_id": string,"p_id": string,"p_revision": number,"p_ride_id": string,"p_vehicle_id": string,"p_vehicle_version": number }; Returns: string
                            },
+"record_pickup":
+{ Args: { "p_child_id": string,"p_request_id": string,"p_revision": number,"p_ride_id": string,"p_version": number }; Returns: string
+                           },
 "remove_circle_family":
 { Args: { "p_circle_id": string,"p_family_id": string }; Returns: undefined
                            },
 "remove_family_member":
 { Args: { "p_family_id": string,"p_user_id": string }; Returns: undefined
+                           },
+"report_arrival":
+{ Args: { "p_child_id": string,"p_request_id": string,"p_revision": number,"p_ride_id": string,"p_version": number }; Returns: string
                            },
 "respond_to_ride_invitation":
 { Args: { "p_accept": boolean,"p_child_ids": (string)[],"p_family_id": string,"p_revision": number,"p_ride_id": string }; Returns: number
@@ -504,6 +626,11 @@ isOneToOne: false
                            },
 "set_own_ride_riders":
 { Args: { "p_child_ids": (string)[],"p_family_id": string,"p_revision": number,"p_ride_id": string }; Returns: number
+                           },
+"trip_attention":
+{ Args: { "p_after_id"?: string,"p_limit"?: number }; Returns: {
+              "awaiting_count": number,"destination_summary": string,"is_driver": boolean,"missing_recipient_count": number,"pickup_summary": string,"ride_id": string,"started_at": string
+            }[]
                            },
 "withdraw_driver":
 { Args: { "p_id": string,"p_revision": number }; Returns: string

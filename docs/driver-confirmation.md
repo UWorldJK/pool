@@ -95,8 +95,8 @@ reservation and explicitly retry. There is no client-side count-then-insert.
 
 Triggers protect inherited roster/location/plan mutation entry points. Whole-ride
 cancellation closes proposals and releases reservations inside the same database
-transaction. Necessary guardian, driver or circle-family removal closes affected
-future/ongoing assignments and bumps the ride revision in the removal transaction.
+transaction. Before pickup, necessary guardian, driver or circle-family removal closes affected
+future assignments and bumps the ride revision in the removal transaction.
 Subsequent reads use current memberships. No replacement is selected. Expired
 pending proposals have an effective needs-driver status using database time on
 reads; every reply checks the deadline, and a new nomination closes expired
@@ -141,3 +141,8 @@ account-removal policy decisions.
 No replacement swaps, trip events/pickup/arrival/handoff, trust lists, automatic
 matching, GPS, notifications, calendar integration, native work or visual parity
 are included. Stop after review; do not merge or start R6.
+
+R6 extends these rules with [pickup and handoff guards](ride-handoffs.md): first
+pickup freezes the plan, withdrawal/revocation/cancellation then fail, responsible
+memberships remain until actual trip completion, and completed history is retained.
+The final explicit child receipt releases the assignment reservation.

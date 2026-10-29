@@ -7,7 +7,8 @@ hosted Supabase.
 
 Adults can create an email/password account, confirm their email, sign in/out,
 and recover their password. `/app` supports families, guardians, circles and manual
-membership invitations. Ride workflows, live location, notifications and calendar
+membership invitations. Ride planning, driver confirmation, manually reported pickup/arrival and explicit
+per-child guardian receipt are available. Live location, notifications and calendar
 sync are not implemented. The existing `sites/` and
 `exports/` prototypes remain reference material and are excluded from builds.
 
@@ -169,7 +170,7 @@ GitHub's **CI / checks** runs `npm ci`, `npm run check`, actual Auth browser tes
 and clean/upgrade migrations, generated-type drift and real RLS/command tests
 against disposable local Supabase, disposable Compose validation and the final
 `linux/amd64` container smoke on every PR to `main`
-and every merged `main` revision (including the R2, R3, R4 and R5 stacked PR bases). These
+and every merged `main` revision (including the R2, R3, R4, R5 and R6 stacked PR bases). These
 mandatory checks need no hosted account,
 `.env.local`, prototypes or cloud credentials. Guard regressions run with `npm test`.
 When checking inside the development container, explicitly use production mode:
@@ -239,3 +240,12 @@ transactional capacity/reservation enforcement, and explicit withdrawal/revocati
 See [driver confirmation, privacy and validation](docs/driver-confirmation.md).
 The PR is stacked on R4; isolated hosted M1 verification remains pending provider
 setup. Production still requires validated, protected, PR-merged current `main`.
+
+## Pickup, arrival and child receipt
+
+R6 adds manually reported per-child progress, designated active guardian recipients
+and an authorized append-only activity history. Driver arrival persists separately
+from explicit guardian receipt. The first pickup freezes the plan and responsibilities;
+the final child receipt completes the ride. See [handoff authority, active-trip
+guards and validation](docs/ride-handoffs.md). This PR is stacked on R5 and retains
+all production release restrictions.
