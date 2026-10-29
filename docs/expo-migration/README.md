@@ -111,7 +111,10 @@ npm run test:ios
 ```
 
 The native runner generates the ignored iOS project, builds an unsigned Release
-Simulator app and runs the UI smoke. The full harness then exercises a native
+Simulator app and runs the UI smoke. It builds only the selected simulator
+architecture and boots the simulator after compilation, avoiding a second unused
+architecture and simulator CPU load during the build. Cold CI builds have a
+45-minute budget. The full harness then exercises a native
 adult and an independent browser participant: real captured-mail signup, session
 restart, family/circle/child/vehicle setup, manual invitation, ride enrollment,
 separate acceptance and fresh child consent, an optional replacement, per-child

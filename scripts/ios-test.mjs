@@ -72,9 +72,10 @@ if (
     const device =
       devices.find((device) => device.state === "Booted") ?? devices.at(-1);
     if (!device) throw new Error("Install an iPhone simulator runtime first.");
-    if (device.state !== "Booted")
-      run("xcrun", ["simctl", "boot", device.udid]);
-    run("xcrun", ["simctl", "bootstatus", device.udid, "-b"]);
+    console.log(`Preparing iOS Simulator: ${device.name}`);
+    console.log(
+      "Generating the Expo iOS project and installing native dependencies.",
+    );
     run(process.execPath, [
       "node_modules/expo/bin/cli",
       "prebuild",
@@ -84,7 +85,11 @@ if (
     ]);
     run("pod", ["install"], { cwd: resolve("ios") });
     directory = mkdtempSync(join(tmpdir(), "pool-ios-"));
+    console.log(
+      "Building unsigned Release for the selected simulator architecture.",
+    );
     run("xcodebuild", [
+      "-quiet",
       "-workspace",
       "ios/Pool.xcworkspace",
       "-scheme",
@@ -97,6 +102,7 @@ if (
       `id=${device.udid}`,
       "-derivedDataPath",
       directory,
+      "ONLY_ACTIVE_ARCH=YES",
       "CODE_SIGNING_ALLOWED=NO",
     ]);
     const application = join(
@@ -105,6 +111,12 @@ if (
     );
     if (!existsSync(application))
       throw new Error("Simulator application was not built.");
+    console.log(
+      "Installing the simulator application and running native UI smoke.",
+    );
+    if (device.state !== "Booted")
+      run("xcrun", ["simctl", "boot", device.udid]);
+    run("xcrun", ["simctl", "bootstatus", device.udid, "-b"]);
     run("xcrun", ["simctl", "install", device.udid, application]);
     run("maestro", ["--device", device.udid, "test", "tests/ios/smoke.yaml"]);
     if (!process.argv.includes("--smoke")) {
