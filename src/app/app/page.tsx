@@ -19,6 +19,6 @@ export default async function Application() {
     <h2>Your circles</h2>
     {circles.data.length ? <ul>{circles.data.map((circle) => <li key={circle.id}><Link href={`/app/circles/${circle.id}`}>{circle.name}</Link></li>)}</ul> : <p>No circles yet. Open an owned family to create a circle, or use an invitation to join one.</p>}
     <Link href="/app/invitations">Accept an invitation</Link>
-    <p>Circle membership does not approve anyone to drive. Plan rides with your own children; every saved ride still needs a driver.</p>
+    <p>Circle membership does not approve anyone to drive. Plan rides with your own children, nominate a driver and explicitly consent for each child.</p>
   </>;
 }

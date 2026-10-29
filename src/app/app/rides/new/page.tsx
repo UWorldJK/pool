@@ -19,7 +19,7 @@ export default async function NewRide({ searchParams }: { searchParams: Promise<
       <p>Invitation summaries are visible before joining. Use coarse labels without addresses or private notes.</p>
       <label>Pickup summary<input name="pickup_summary" required maxLength={80} placeholder="Neighborhood meeting area" /></label>
       <label>Drop-off summary<input name="destination_summary" required maxLength={80} placeholder="Activity area" /></label>
-      <p>Exact locations are shared only with participating families.</p>
+      <p>Exact locations are shared with participating families and the confirmed driver.</p>
       <label>Exact pickup<input name="pickup" required maxLength={300} /></label>
       <label>Exact drop-off<input name="destination" required maxLength={300} /></label>
       <label>IANA timezone<input name="timezone" defaultValue="UTC" required maxLength={100} placeholder="America/Denver" /></label>

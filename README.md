@@ -169,7 +169,7 @@ GitHub's **CI / checks** runs `npm ci`, `npm run check`, actual Auth browser tes
 and clean/upgrade migrations, generated-type drift and real RLS/command tests
 against disposable local Supabase, disposable Compose validation and the final
 `linux/amd64` container smoke on every PR to `main`
-and every merged `main` revision (including the R2, R3 and R4 stacked PR bases). These
+and every merged `main` revision (including the R2, R3, R4 and R5 stacked PR bases). These
 mandatory checks need no hosted account,
 `.env.local`, prototypes or cloud credentials. Guard regressions run with `npm test`.
 When checking inside the development container, explicitly use production mode:
@@ -230,3 +230,12 @@ application delivery, with checksums and serialized test/production ordering. Se
 for the required check, protected environments, exact variable mapping and setup
 status. Hosted delivery is pending provider setup and verification; this PR does
 not create accounts or paid services.
+
+## Scheduling and driver assignment
+
+R5 completes the local scheduling-and-assignment flow: driver-owned vehicles,
+initial nomination, separate driver acceptance and per-child guardian consent,
+transactional capacity/reservation enforcement, and explicit withdrawal/revocation.
+See [driver confirmation, privacy and validation](docs/driver-confirmation.md).
+The PR is stacked on R4; isolated hosted M1 verification remains pending provider
+setup. Production still requires validated, protected, PR-merged current `main`.
