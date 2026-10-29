@@ -285,9 +285,16 @@ test("R7 real adults preserve optional swaps, reset unavailable consent and pers
       .selectOption({
         label: "R7 Guardian A · R7 candidate car · 3 passenger seats",
       });
+    // Chromium omits zero seconds when serializing datetime-local values.
+    // Playwright requires the supplied string to match that canonical form.
     await expiring
       .getByLabel("Review deadline in UTC")
-      .fill(new Date(Date.now() + 6000).toISOString().slice(0, 19));
+      .fill(
+        new Date(Date.now() + 6000)
+          .toISOString()
+          .slice(0, 19)
+          .replace(/:00$/, ""),
+      );
     await expiring.getByRole("checkbox").check();
     await expiring
       .getByRole("button", { name: "Request replacement", exact: true })
