@@ -13,7 +13,16 @@ async function addChild(page,name,seat) {
   await expect(f.getByRole("status")).toContainText("Saved");await page.reload();
 }
 async function nominate(page,rideUrl) {
-  await page.goto(rideUrl);const f=page.locator("form").filter({has:page.getByRole("button",{name:"Nominate driver",exact:true})});
+  await page.goto(rideUrl);
+  await expect(page.getByRole("button",{name:/^(Request replacement|Nominate driver)$/})).toBeVisible();
+  const replacement=page.getByRole("button",{name:"Request replacement",exact:true});
+  if(await replacement.count()) {
+    const form=page.locator("form").filter({has:replacement});
+    await form.getByLabel("Replacement driver and registered vehicle").selectOption({label:"Dedicated driver · Journey van · 3 passenger seats"});
+    await form.getByLabel("I request a replacement with fresh driver acceptance and consent for every enrolled child.").check();
+    await replacement.click();await expect(page.getByText("Awaiting confirmation",{exact:true})).toBeVisible();return;
+  }
+  const f=page.locator("form").filter({has:page.getByRole("button",{name:"Nominate driver",exact:true})});
   const select=f.getByLabel("Driver and registered vehicle");const option=select.locator("option").filter({hasText:"Dedicated driver · Journey van"});
   await select.selectOption(await option.getAttribute("value"));await f.getByLabel("I nominate this adult and vehicle for this ride’s current riders and plan.").check();
   await f.getByRole("button",{name:"Nominate driver",exact:true}).click();

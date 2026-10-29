@@ -6,8 +6,9 @@ import { RideForm, ChildChoices } from "../../ride-form";
 import { DriverForm, Confirmation } from "../../driver-form";
 import { HandoffPanel } from "../../handoff-panel";
 import { DriverPanel } from "../../driver-panel";
+import { ReplacementPanel } from "../../replacement-panel";
 import { coverageLabel } from "@/lib/drivers";
-export default async function RideDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ family?: string }> }) {
+export default async function RideDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ family?: string; after_replacement?: string }> }) {
   const { id } = await params;
   if (!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id)) notFound();
   const query = await searchParams;
@@ -21,12 +22,12 @@ export default async function RideDetail({ params, searchParams }: { params: Pro
   const trip = await client.from("ride_trips").select("completed_at").eq("ride_id",id).maybeSingle();
   if (trip.error) throw new Error("Trip could not be loaded");
   const frozen = Boolean(trip.data);
-  if (!offer && status?.is_driver) {
+  if (!offer && (status?.is_driver || status?.is_current_driver || status?.is_completed_driver)) {
     const [exact, enrolled] = await Promise.all([client.from("ride_locations").select("pickup,destination").eq("ride_id",id).maybeSingle(),client.from("ride_riders").select("child_id,display_name,seat_requirement").eq("ride_id",id)]);
     if (exact.error || enrolled.error) throw new Error("Assignment could not be loaded");
     return <><h1>{status.pickup_summary} → {status.destination_summary}</h1><p>Pickup: {rideTime(status.starts_at,status.timezone)}<br />Drop-off: {rideTime(status.ends_at,status.timezone)}</p><DriverPanel status={status} />
       {exact.data ? <><h2>Exact locations</h2><p>Pickup: {exact.data.pickup}</p><p>Drop-off: {exact.data.destination}</p><h2>Enrolled riders</h2><ul>{enrolled.data.map((c) => <li key={c.child_id}>{c.display_name} · {c.seat_requirement}</li>)}</ul></> : <p>Only the minimal driver proposal is available. Exact private locations become available after confirmation.</p>}
-      {exact.data && <HandoffPanel rideId={id} revision={status.ride_revision} timezone={status.timezone} isDriver={status.coverage === "confirmed"} cancelled={Boolean(status.cancelled_at)} />}</>;
+      {exact.data && <HandoffPanel rideId={id} revision={status.ride_revision} timezone={status.timezone} isDriver={status.is_current_driver} cancelled={Boolean(status.cancelled_at)} />}</>;
   }
   if (!offer) return <><h1>Ride unavailable</h1><p>This ride is unavailable to this account or your family is no longer in its circle.</p></>;
   const [families, children, locations, riders, participation, roster, options, consents] = await Promise.all([
@@ -54,26 +55,27 @@ export default async function RideDetail({ params, searchParams }: { params: Pro
       <h2>Family responses</h2><ul>{participation.data.map((item) => <li key={item.family_id}>{familyName(item.family_id)} · {item.status}</li>)}</ul>
     </> : <p>Only the minimal invitation summary is available. Exact pickup, drop-off and riders become visible when your family joins with its own child.</p>}
     {status && <DriverPanel status={status} />}
-    {locations.data && <HandoffPanel rideId={id} revision={offer.revision} timezone={offer.timezone} isDriver={Boolean(status?.is_driver && status.coverage === "confirmed")} cancelled={Boolean(offer.cancelled_at)} />}
+    {status && offer.status === "joined" && <ReplacementPanel status={status} familyId={offer.family_id} revision={offer.revision} frozen={frozen} options={options.data} after={query.after_replacement} />}
+    {locations.data && <HandoffPanel rideId={id} revision={offer.revision} timezone={offer.timezone} isDriver={Boolean(status?.is_current_driver)} cancelled={Boolean(offer.cancelled_at)} />}
     {!offer.cancelled_at && offer.status === "joined" && <>
-      {!locked && <><h2>Nominate an initial driver</h2><p>Every invited family must respond first. Nomination freezes this roster and vehicle version; acceptance and each child’s consent are separate actions.</p>
+      {!locked && status?.current_assignment_release_reason !== "withdrawn" && <><h2>Nominate an initial driver</h2><p>Every invited family must respond first. Nomination freezes this roster and vehicle version; acceptance and each child’s consent are separate actions.</p>
         {options.data.length ? <DriverForm key={`nominate-${offer.revision}`} command="proposeDriver" fields={{ ...fields,proposal_id:crypto.randomUUID() }} label="Nominate driver">
           <label>Driver and registered vehicle<select name="driver_vehicle" required defaultValue=""><option value="" disabled>Choose a circle adult and vehicle</option>{options.data.map((v) => <option key={`${v.driver_id}-${v.driver_family_id}-${v.vehicle_id}`} value={[v.driver_id,v.driver_family_id,v.vehicle_id,v.vehicle_version].join("|")}>{v.display_name} · {v.vehicle_label} · {v.passenger_seats} passenger seats</option>)}</select></label>
           <Confirmation>I nominate this adult and vehicle for this ride’s current riders and plan.</Confirmation>
         </DriverForm> : <p>No eligible registered vehicles. An adult must <Link href="/app/vehicles">register their own vehicle</Link> first.</p>}
       </>}
-      {status && locked && !frozen && <>
+      {status && (status.proposal_status === "pending" || status.proposal_status === "confirmed") && locked && !frozen && <>
         <h2>Consent for your children</h2><p>Approve {status.driver_name} in {status.vehicle_label}, vehicle version {status.vehicle_version}, for ride revision {status.ride_revision}. Driving acceptance does not give this consent. Circle membership and invitations do not give this consent.</p>
         <ul>{riders.data.filter((r) => r.family_id === offer.family_id).map((r) => <li key={r.child_id}>{r.display_name}: {consents.data.some((c) => c.child_id===r.child_id && !c.revoked_at) ? "Consent saved" : "Consent required"}</li>)}</ul>
-        {status.coverage === "awaiting_confirmation" && <DriverForm key={`consent-${status.proposal_id}`} command="consentForOwnChildren" fields={{ proposal_id:status.proposal_id,revision:String(status.ride_revision),family_id:offer.family_id }} label="Approve driver for selected children">
+        {status.proposal_status === "pending" && <DriverForm key={`consent-${status.proposal_id}`} command="consentForOwnChildren" fields={{ proposal_id:status.proposal_id,revision:String(status.ride_revision),family_id:offer.family_id }} label="Approve driver for selected children">
           <ChildChoices>{riders.data.filter((r) => r.family_id===offer.family_id).map((r) => ({ id:r.child_id,display_name:r.display_name }))}</ChildChoices>
           <Confirmation>I explicitly consent to this driver, vehicle and plan for my selected children.</Confirmation>
         </DriverForm>}
         {consents.data.some((c) => !c.revoked_at) && <DriverForm command="revokeOwnConsent" fields={{ proposal_id:status.proposal_id,revision:String(status.ride_revision),family_id:offer.family_id }} label="Revoke selected child consent">
           <ChildChoices>{riders.data.filter((r) => r.family_id===offer.family_id && consents.data.some((c) => c.child_id===r.child_id && !c.revoked_at)).map((r) => ({ id:r.child_id,display_name:r.display_name }))}</ChildChoices>
-          <Confirmation>I revoke consent and leave this ride needing a driver.</Confirmation>
+          <Confirmation>I revoke consent and {status.mode !== "initial" && status.proposal_status === "pending" ? "close this replacement request. An available original driver stays assigned." : "leave this ride needing a driver."}</Confirmation>
         </DriverForm>}
-        {status.coverage === "awaiting_confirmation" && <DriverForm command="cancelDriverProposal" fields={{ proposal_id:status.proposal_id,revision:String(status.ride_revision),family_id:offer.family_id }} label="Cancel driver proposal"><Confirmation>I cancel this nomination and release the roster for changes.</Confirmation></DriverForm>}
+        {status.proposal_status === "pending" && <DriverForm command="cancelDriverProposal" fields={{ proposal_id:status.proposal_id,revision:String(status.ride_revision),family_id:offer.family_id }} label="Cancel driver proposal"><Confirmation>I cancel this nomination{status.mode !== "initial" ? ". An available original driver stays assigned." : " and release the roster for changes."}</Confirmation></DriverForm>}
       </>}
     </>}
     {!offer.cancelled_at && <>

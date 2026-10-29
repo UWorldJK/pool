@@ -10,8 +10,8 @@ const {driverAction}=await import("../src/app/app/driver-actions.ts");
 loader.deregister();after(()=>mock.restoreAll());
 const family=crypto.randomUUID(),child=crypto.randomUUID(),proposal=crypto.randomUUID(),vehicle=crypto.randomUUID(),driver=crypto.randomUUID(),ride=crypto.randomUUID();
 function form(values){const data=new FormData();for(const [k,v] of Object.entries(values))for(const x of Array.isArray(v)?v:[v])data.append(k,x);return data;}
-const base={proposal_id:proposal,revision:"3",family_id:family,child_ids:[child],confirm:"yes",vehicle_id:vehicle,label:"Own car",passenger_seats:"4",version:"0",available_seats:"4",restraints:"yes",ride_id:ride,driver_vehicle:[driver,family,vehicle,"1"].join("|")};
-const commands=["saveVehicle","proposeDriver","acceptDriverProposal","consentForOwnChildren","declineDriverProposal","cancelDriverProposal","withdrawDriver","revokeOwnConsent"];
+const base={mode:"optional_swap",deadline:"2028-09-01T14:00:00Z",original_assignment_id:crypto.randomUUID(),original_assignment_revision:"3",proposal_id:proposal,revision:"3",family_id:family,child_ids:[child],confirm:"yes",vehicle_id:vehicle,label:"Own car",passenger_seats:"4",version:"0",available_seats:"4",restraints:"yes",ride_id:ride,driver_vehicle:[driver,family,vehicle,"1"].join("|")};
+const commands=["saveVehicle","proposeDriver","requestReplacement","acceptDriverProposal","consentForOwnChildren","declineDriverProposal","cancelDriverProposal","withdrawDriver","revokeOwnConsent"];
 beforeEach(()=>{authenticated=true;rpc.mock.resetCalls();rpc.mock.mockImplementation(async()=>({data:"awaiting_confirmation",error:null}));});
 test("every driver action reauthenticates and ignores forged prior success",async()=>{authenticated=false;for(const command of commands)assert.match((await driverAction({message:"Confirmed"},form({...base,command}))).error,/Sign in/);assert.equal(rpc.mock.callCount(),0);});
 test("nomination binds selection and request ID; driver acceptance never implies child consent",async()=>{
@@ -36,4 +36,13 @@ test("driving pagination preserves a paired instant/ride cursor and pending filt
   const query=Object.fromEntries(new URL(next,"https://example.test").searchParams);
   assert.equal(query.pending,"1");assert.deepEqual(driverPageCursor(query),{p_after_start:"2027-09-01T14:00:00.000Z",p_after_id:ride});
   for(const bad of [{after_start:"2027-09-01"},{after_id:ride},{after_start:"bad",after_id:ride},{after_start:"2027-09-01",after_id:"bad"}])assert.throws(()=>driverPageCursor(bad),/Invalid driving page/);
+});
+
+test("replacement nomination binds explicit origin and UTC deadline without accepting or consenting",async()=>{
+  await driverAction({},form({...base,command:"requestReplacement",actor_id:"forged",consent_count:"99",accepted_at:"now"}));
+  const [name,args]=rpc.mock.calls[0].arguments;
+  assert.equal(name,"request_replacement");assert.equal(args.p_mode,"optional_swap");assert.equal(args.p_original_assignment_id,base.original_assignment_id);assert.equal(args.p_original_assignment_revision,3);assert.equal(args.p_deadline,"2028-09-01T14:00:00.000Z");assert.equal(Object.hasOwn(args,"p_accepted_at"),false);assert.equal(Object.hasOwn(args,"p_consent_count"),false);
+  rpc.mock.resetCalls();
+  for(const change of [{deadline:"2028-09-01T14:00"},{deadline:"invalid"},{mode:"auto"},{original_assignment_id:"fake"},{original_assignment_revision:"0"}])assert.ok((await driverAction({},form({...base,command:"requestReplacement",...change}))).error);
+  assert.equal(rpc.mock.callCount(),0);
 });

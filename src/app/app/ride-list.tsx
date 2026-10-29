@@ -10,6 +10,7 @@ export async function RideList({ offers, statuses = [] }: { offers: RideOffer[];
   return <ul>{unique.map((ride) => <li key={ride.id}>
     <Link href={`/app/rides/${ride.id}`}>{ride.pickup_summary} → {ride.destination_summary}</Link>
     <p>{ride.direction === "return" ? "Return" : "Outbound"} · {ride.cancelled_at ? "Cancelled" : coverageLabel(statuses.find((p) => p.ride_id === ride.id)?.coverage)}</p>
+    {statuses.filter((p) => p.ride_id===ride.id && p.mode!=="initial" && p.proposal_status==="pending").map((p) => <p key={p.proposal_id}>Replacement review pending · {p.coverage==="confirmed" ? "Original driver remains assigned" : "Uncovered until replacement confirms"} · {p.accepted_at ? "Driver accepted" : "Driver reply required"} · {p.rider_count-p.consent_count} child consents outstanding · Deadline: {rideTime(p.deadline,p.timezone)}</p>)}
     {trips.data.some((t) => t.ride_id===ride.id) && <p>Manually reported: {trips.data.find((t) => t.ride_id===ride.id)?.completed_at ? "Ride completed" : "Trip in progress — handoffs remain"}</p>}
     <p>Pickup: {rideTime(ride.starts_at, ride.timezone)}<br />Drop-off: {rideTime(ride.ends_at, ride.timezone)}<br />{ride.timezone}</p>
     <p>Your family responses: {[...new Set(offers.filter((o) => o.id === ride.id).map((o) => o.status))].join(", ")}</p>

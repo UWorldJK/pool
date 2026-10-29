@@ -8,7 +8,7 @@ hosted Supabase.
 Adults can create an email/password account, confirm their email, sign in/out,
 and recover their password. `/app` supports families, guardians, circles and manual
 membership invitations. Ride planning, driver confirmation, manually reported pickup/arrival and explicit
-per-child guardian receipt are available. Live location, notifications and calendar
+per-child guardian receipt, and driver replacement review are available. Live location, notifications and calendar
 sync are not implemented. The existing `sites/` and
 `exports/` prototypes remain reference material and are excluded from builds.
 
@@ -249,3 +249,12 @@ from explicit guardian receipt. The first pickup freezes the plan and responsibi
 the final child receipt completes the ride. See [handoff authority, active-trip
 guards and validation](docs/ride-handoffs.md). This PR is stacked on R5 and retains
 all production release restrictions.
+
+## Replacement requests and family approvals
+
+R7 adds optional swaps that preserve an available original driver, and fresh
+unavailable-driver requests that leave rides uncovered until actual candidate
+acceptance and every child's guardian consent are saved. Deadlines use database
+time; finalization swaps reservations atomically and replacements stop at first
+pickup. See [replacement behavior, authority and validation](docs/driver-replacements.md).
+R7 is stacked on R6 and retains all production release restrictions.

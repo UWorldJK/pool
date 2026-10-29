@@ -8,7 +8,7 @@ export function DriverForm({ command, fields = {}, label, children }: { command:
   const [state, action, pending] = useActionState(driverAction, {} as DriverState);
   const [requestId] = useState(fields.proposal_id ?? fields.vehicle_id);
   const ready = useSyncExternalStore(subscribe, () => true, () => false);
-  const creates = command === "proposeDriver" || (command === "saveVehicle" && fields.version === "0");
+  const creates = command === "proposeDriver" || command === "requestReplacement" || (command === "saveVehicle" && fields.version === "0");
   return <form className="auth-form" onSubmit={(event) => {
     event.preventDefault(); const data = new FormData(event.currentTarget); startTransition(() => action(data));
   }}>
