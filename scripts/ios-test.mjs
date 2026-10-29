@@ -1,9 +1,46 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 function run(command, args, options = {}) {
   return execFileSync(command, args, { stdio: "inherit", ...options });
+}
+function diagnostics(device) {
+  const output = resolve("test-results/ios");
+  mkdirSync(output, { recursive: true });
+  spawnSync(
+    "xcrun",
+    ["simctl", "io", device, "screenshot", join(output, "screen.png")],
+    { timeout: 15000 },
+  );
+  const logs = spawnSync(
+    "xcrun",
+    [
+      "simctl",
+      "spawn",
+      device,
+      "log",
+      "show",
+      "--last",
+      "10m",
+      "--style",
+      "compact",
+      "--predicate",
+      'process == "Pool" OR process == "ReportCrash"',
+    ],
+    { encoding: "utf8", timeout: 30000, maxBuffer: 10 * 1024 * 1024 },
+  );
+  writeFileSync(
+    join(output, "application.log"),
+    `${logs.stdout ?? ""}\n${logs.stderr ?? ""}`,
+  );
+  console.log(`Native failure diagnostics saved in ${output}`);
 }
 export function iosPrerequisites() {
   if (process.platform !== "darwin")
@@ -48,6 +85,7 @@ if (
   }
 } else {
   let directory;
+  let simulator;
   try {
     iosPrerequisites();
     if (
@@ -72,6 +110,7 @@ if (
     const device =
       devices.find((device) => device.state === "Booted") ?? devices.at(-1);
     if (!device) throw new Error("Install an iPhone simulator runtime first.");
+    simulator = device.udid;
     console.log(`Preparing iOS Simulator: ${device.name}`);
     console.log(
       "Generating the Expo iOS project and installing native dependencies.",
@@ -84,7 +123,9 @@ if (
       "--no-install",
     ]);
     run("pod", ["install"], { cwd: resolve("ios") });
-    directory = mkdtempSync(join(tmpdir(), "pool-ios-"));
+    directory = process.env.POOL_IOS_DERIVED_DATA
+      ? resolve(process.env.POOL_IOS_DERIVED_DATA)
+      : mkdtempSync(join(tmpdir(), "pool-ios-"));
     console.log(
       "Building unsigned Release for the selected simulator architecture.",
     );
@@ -125,8 +166,16 @@ if (
     }
   } catch (error) {
     console.error(error.message);
+    if (simulator) {
+      try {
+        diagnostics(simulator);
+      } catch (diagnosticError) {
+        console.error(diagnosticError.message);
+      }
+    }
     process.exitCode = 1;
   } finally {
-    if (directory) rmSync(directory, { recursive: true, force: true });
+    if (directory && !process.env.POOL_IOS_DERIVED_DATA)
+      rmSync(directory, { recursive: true, force: true });
   }
 }

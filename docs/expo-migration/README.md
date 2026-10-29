@@ -126,6 +126,11 @@ separate acceptance and fresh child consent, an optional replacement, per-child
 arrival and independent receipt. UI mutations use Maestro or Playwright; a
 public-key observer only reads persisted results.
 
+CI retains Maestro screenshots/hierarchies and simulator application logs for
+failed smoke runs. Its native dependency/build cache is scoped to the toolchain,
+architecture and configuration inputs; each run still bundles the current source
+and executes the required smoke. Release delivery never consumes this cache.
+
 This machine initially has Command Line Tools selected and no `simctl`; no local
 simulator, VoiceOver or native UI acceptance is claimed without that prerequisite.
 The macOS CI job builds and launches the simulator smoke; it does not substitute
