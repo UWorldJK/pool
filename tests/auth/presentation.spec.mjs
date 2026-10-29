@@ -63,6 +63,7 @@ test("R8 shared layouts retain desktop composition, mobile navigation, keyboard 
     await captureState(page, "schedule");
     await page.goto("/app");
     await family(page, "Presentation family", "Presentation guardian");
+    await expect(page.getByRole("heading", { level: 1 })).toBeInViewport();
     await accessible(page);
     await captureState(page, "family");
     const createCircle = page.getByRole("button", {
@@ -82,6 +83,7 @@ test("R8 shared layouts retain desktop composition, mobile navigation, keyboard 
       .getByRole("button", { name: "Create circle", exact: true })
       .click();
     await page.getByRole("link", { name: "Open saved membership" }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toBeInViewport();
     await accessible(page);
     await captureState(page, "circle");
     await page.goto("/app/children");
@@ -140,6 +142,7 @@ test("R8 shared layouts retain desktop composition, mobile navigation, keyboard 
     await expect(page).toHaveURL(/\/app$/);
     await sidebar.getByRole("link", { name: "Schedule", exact: true }).click();
     await expect(page).toHaveURL(/\/app\/schedule$/);
+    await expect(page.getByRole("heading", { level: 1 })).toBeInViewport();
     await page.goBack();
     await expect(page).toHaveURL(/\/app$/);
     await page.goForward();

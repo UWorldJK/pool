@@ -1,6 +1,6 @@
 import { TypographyScale } from "./elements";
 import { SkipLink } from "./web-accessibility";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ScrollView,
   View,
@@ -10,9 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
+  type ScrollViewInstance,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { usePathname } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useSession } from "@/services/session";
@@ -87,6 +88,10 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
     { user } = useSession(),
     pathname = usePathname();
   const [refreshing, setRefreshing] = useState(false);
+  const content = useRef<ScrollViewInstance>(null);
+  useEffect(() => {
+    content.current?.scrollTo({ y: 0, animated: false });
+  }, [pathname]);
   const context = useQuery({
     queryKey: ["account", user?.id, "shell"],
     enabled: Boolean(user),
@@ -235,7 +240,7 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
         <View style={{ flex: 1, minWidth: 0 }}>
           <View
             style={{
-              height: mobile ? 70 : 85,
+              minHeight: mobile ? 70 : 85,
               paddingHorizontal: mobile ? 18 : 40,
               borderBottomWidth: 1,
               borderColor: colors.line,
@@ -245,6 +250,29 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
               gap: 10,
             }}
           >
+            {Platform.OS !== "web" &&
+              /^\/app\/(families|circles|rides)\//.test(pathname) && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                  onPress={() =>
+                    router.canGoBack()
+                      ? router.back()
+                      : router.replace("/app/attention")
+                  }
+                  style={[
+                    styles.button,
+                    {
+                      width: 44,
+                      padding: 0,
+                      borderWidth: 0,
+                      backgroundColor: "transparent",
+                    },
+                  ]}
+                >
+                  <Text style={[styles.text, { fontSize: 26 }]}>‹</Text>
+                </Pressable>
+              )}
             <Text
               style={[
                 styles.text,
@@ -276,6 +304,7 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
             style={{ flex: 1 }}
           >
             <ScrollView
+              ref={content}
               keyboardShouldPersistTaps="handled"
               refreshControl={
                 Platform.OS === "web" ? undefined : (

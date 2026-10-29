@@ -224,6 +224,11 @@ export async function nativeJourneys({ device, run, directory }) {
         .single()
     ).data.id;
     const ridePath = `/app/rides/${ride}`;
+    const freshRide = () => [
+      open("/app/attention"),
+      tap("Refresh current data"),
+      open(ridePath),
+    ];
     await visit(web.page, ridePath);
     await web.page.getByLabel("Web child", { exact: true }).check();
     await web.page
@@ -231,14 +236,14 @@ export async function nativeJourneys({ device, run, directory }) {
       .click();
     await web.page.getByText("101 Native pickup", { exact: true }).waitFor();
     flow([
-      open("/app/attention"),
-      open(ridePath),
+      ...freshRide(),
       { tapOn: { id: "field-driver_vehicle" } },
       tap("Native guardian · Native van · 3 passenger seats"),
       tap(
         "I nominate this adult and vehicle for this ride’s current riders and plan.",
       ),
       tap("Nominate driver"),
+      ...freshRide(),
       ...input("Available passenger seats, excluding you", "3"),
       tap(
         "I can accommodate all 0 booster seats and 0 child seats required for these riders.",
@@ -269,8 +274,7 @@ export async function nativeJourneys({ device, run, directory }) {
     await web.page.getByText("Confirmed", { exact: true }).waitFor();
     // Native driver nominates a web replacement; each family provides fresh consent.
     flow([
-      open("/app/attention"),
-      open(ridePath),
+      ...freshRide(),
       tap("Review driver change"),
       { tapOn: { id: "field-driver_vehicle" } },
       tap("Web guardian · Web van · 3 passenger seats"),
@@ -298,8 +302,7 @@ export async function nativeJourneys({ device, run, directory }) {
       .getByRole("button", { name: "Accept as driver", exact: true })
       .click();
     flow([
-      open("/app/attention"),
-      open(ridePath),
+      ...freshRide(),
       { tapOn: { id: `field-child_ids-${nativeChild}` } },
       tap(
         "I explicitly consent to this driver, vehicle and plan for my selected children.",
@@ -320,8 +323,7 @@ export async function nativeJourneys({ device, run, directory }) {
       })
       .click();
     flow([
-      open("/app/attention"),
-      open(ridePath),
+      ...freshRide(),
       { tapOn: { id: "field-recipient_id" } },
       tap("Native guardian (you)"),
       tap(
@@ -352,9 +354,7 @@ export async function nativeJourneys({ device, run, directory }) {
           .click();
       }
     flow([
-      open("/app/attention"),
-      { assertVisible: ".*handoff.*" },
-      open(ridePath),
+      ...freshRide(),
       tap("I explicitly confirm that I have received Native child."),
       tap("Confirm child received"),
       { assertVisible: ".*Handoff completed.*" },

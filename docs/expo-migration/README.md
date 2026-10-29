@@ -20,6 +20,11 @@ navigation. Shared React Native styles drive responsive composition. Small web
 adapters retain native browser date/select controls, focus management and links.
 There is no WebView or separate product implementation.
 
+New destinations reset the shared content scroller, while refetches retain the
+current form position. Native detail screens expose an explicit back action and
+headers can grow with larger text. Cross-platform journeys use the visible refresh
+control when another participant has changed a ride.
+
 `after/` contains screenshots from the migrated real-user journeys. Compare only
 matching named states and viewports; independently created disposable records
 have different fictional participants/identifiers. No existing developer records
