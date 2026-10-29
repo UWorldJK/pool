@@ -4,6 +4,9 @@ appId: dev.pool.prototype
     clearState: true
     clearKeychain: true
 - openLink: pool:///sign-up
+- tapOn:
+    text: "^Open$"
+    optional: true
 - assertVisible: Create your Pool account
 - assertVisible: Email address
 - assertVisible: Password
@@ -12,4 +15,7 @@ appId: dev.pool.prototype
 - stopApp
 - launchApp
 - openLink: pool:///sign-in
+- tapOn:
+    text: "^Open$"
+    optional: true
 - assertVisible: Sign in to Pool

@@ -45,18 +45,20 @@ export async function nativeJourneys({ device, run, directory }) {
   function flow(commands) {
     const path = join(directory, `journey-${++sequence}.yaml`);
     const visibleCommands = commands.flatMap((command) =>
-      typeof command === "object" && command.tapOn
-        ? [
-            {
-              scrollUntilVisible: {
-                element: command.tapOn,
-                direction: "DOWN",
-                timeout: 20000,
+      typeof command === "object" && command.openLink
+        ? [command, { tapOn: { text: "^Open$", optional: true } }]
+        : typeof command === "object" && command.tapOn
+          ? [
+              {
+                scrollUntilVisible: {
+                  element: command.tapOn,
+                  direction: "DOWN",
+                  timeout: 20000,
+                },
               },
-            },
-            command,
-          ]
-        : [command],
+              command,
+            ]
+          : [command],
     );
     writeFileSync(
       path,
