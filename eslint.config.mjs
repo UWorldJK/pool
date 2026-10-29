@@ -11,5 +11,6 @@ export default defineConfig([
     "sites/**",
     "exports/**",
     "supabase/.temp/**",
+    "mobile/**",
   ]),
 ]);
