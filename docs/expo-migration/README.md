@@ -50,9 +50,11 @@ remains the visual contract; its older evidence is preserved.
 - Clean and upgrade schemas, generated types, authorization/privacy, capacity,
   restraints, stale revisions, deadlines, concurrent commands and transactional
   release ordering passed. No Supabase migration or generated database type changed.
-- **Native build, simulator journeys, VoiceOver and large-text acceptance remain
-  pending** the full Xcode/runtime prerequisite. Native component tests and bundle
-  export do not satisfy those acceptance items.
+- CI builds a Release Simulator application and runs public signup/sign-in,
+  deep-link and restart smoke checks. **Full native backend journeys, VoiceOver
+  and large-text acceptance remain pending** the local full Xcode/runtime
+  prerequisite. Bundle, component and public-route smoke checks do not satisfy
+  those acceptance items.
 
 | Inventory                                                                     | Web evidence                                         | iOS status                                                                   |
 | ----------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |

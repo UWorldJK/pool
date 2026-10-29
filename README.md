@@ -116,7 +116,7 @@ brew install mobile-dev-inc/tap/maestro
 npm run test:ios
 ```
 
-This builds an unsigned iOS Simulator application and exercises native/browser
+This builds a locally ad-hoc signed iOS Simulator application and exercises native/browser
 participants against the harness-owned disposable backend. See
 [the migration record](docs/expo-migration/README.md) for acceptance and limitations.
 
