@@ -9,8 +9,8 @@ contracts are preserved. PR #11 is a separate prototype and is not incorporated.
 The pre-migration revision is recorded in `baseline.json` with its routes,
 commands, states and target viewports. Before replacement, the original **12 web
 journeys** and clean/upgrade/database authorization checks passed in an independent
-checkout using its own disposable Supabase project. Captures are in `baseline/`;
-the original v3 comparison artifacts remain unchanged elsewhere in `docs/`.
+checkout using its own disposable Supabase project. Generated screenshots and
+comparison viewers are excluded from Git.
 
 Mobile is the primary interaction target: persistent phone navigation, touchable
 labels, safe areas, keyboard avoidance, native selection/date controls and
@@ -25,14 +25,10 @@ current form position. Native detail screens expose an explicit back action and
 headers can grow with larger text. Cross-platform journeys use the visible refresh
 control when another participant has changed a ride.
 
-`after/` contains screenshots from the migrated real-user journeys. Compare only
-matching named states and viewports; independently created disposable records
-have different fictional participants/identifiers. No existing developer records
-were reset or seeded for these captures.
-
-Open `comparison.html` through a local static server to compare all 14 named
-screens at desktop and phone sizes. The original [v3 checklist](../v3-parity-checklist.md)
-remains the visual contract; its older evidence is preserved.
+Visual checks covered 14 matching named screens at desktop and phone sizes;
+independently created disposable records had different fictional participants
+and identifiers. No existing developer records were reset or seeded for these
+checks. The [v3 checklist](../v3-parity-checklist.md) remains the visual contract.
 
 ## Validation recorded on October 28–29, 2026
 

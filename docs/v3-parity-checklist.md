@@ -1,7 +1,7 @@
 # V3 correction checklist
 
 Compared the unchanged export and v3 distribution with commit `96fe52c` at
-1440×1000 and 390×844 before editing. Captures are in `v3-screenshots/`.
+1440×1000 and 390×844 before editing. Generated captures are excluded from Git.
 The export's broken font import is preserved; the distribution establishes DM
 Sans and Manrope and the intended rendering.
 

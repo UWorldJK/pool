@@ -69,5 +69,5 @@ expiry/reuse, PKCE, safe return paths, membership/ride authorization and accessi
 Native/browser journeys use `npm run test:ios` with full Xcode and Maestro.
 
 The preserved Next.js baseline on commit `85ed3c5` passed its original 12 journeys
-before replacement. Baseline screenshots and migration evidence are in
+before replacement. Baseline inventory and migration evidence are in
 [the migration record](expo-migration/README.md).

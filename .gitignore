@@ -18,3 +18,10 @@ dist-ios/
 /ios/
 /android/
 expo-env.d.ts
+
+# Generated visual comparison artifacts
+/docs/*screenshots/
+/docs/v3-comparison.html
+/docs/expo-migration/after/
+/docs/expo-migration/baseline/
+/docs/expo-migration/comparison.html

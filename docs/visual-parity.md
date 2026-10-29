@@ -73,48 +73,14 @@ capabilities are never imported. Informational history, daylight-saving choices
 and destructive confirmation steps can still use native disclosures; primary
 route, driver and consent information is no longer hidden wholesale.
 
-## Matching-view comparisons
+## Visual comparison record
 
-[Open the side-by-side comparison viewer](v3-comparison.html). The reference uses
-its supplied fictional records; application before/after views use the **same
-persisted Bob account and demo records**, without mutations. Auth fields are
-empty. Each application view starts at the top with its default UI state.
-Older `r8-screenshots/` and `simplification-screenshots/` remain preserved.
-
-| Reference | Desktop | Phone |
-| --- | --- | --- |
-| Supplied export, unchanged | [Export](v3-screenshots/reference/export-desktop.jpg) | [Export](v3-screenshots/reference/export-phone.jpg) |
-| V3 intended rendering | [Today](v3-screenshots/reference/v3-desktop.jpg) | [Today](v3-screenshots/reference/v3-phone.jpg) |
-| V3 schedule | [Schedule](v3-screenshots/reference/schedule-desktop.jpg) | [Schedule](v3-screenshots/reference/schedule-phone.jpg) |
-| V3 circle | [Circle](v3-screenshots/reference/circle-desktop.jpg) | [Circle](v3-screenshots/reference/circle-phone.jpg) |
-| V3 planning dialog | [Dialog](v3-screenshots/reference/planning-dialog-desktop.jpg) | [Dialog](v3-screenshots/reference/planning-dialog-phone.jpg) |
-
-| Application view | Desktop before / after | Phone before / after |
-| --- | --- | --- |
-| Families and circles | [Before](v3-screenshots/before/families-desktop.jpg) · [After](v3-screenshots/after/families-desktop.jpg) | [Before](v3-screenshots/before/families-phone.jpg) · [After](v3-screenshots/after/families-phone.jpg) |
-| Family management | [Before](v3-screenshots/before/family-desktop.jpg) · [After](v3-screenshots/after/family-desktop.jpg) | [Before](v3-screenshots/before/family-phone.jpg) · [After](v3-screenshots/after/family-phone.jpg) |
-| Circle management | [Before](v3-screenshots/before/circle-desktop.jpg) · [After](v3-screenshots/after/circle-desktop.jpg) | [Before](v3-screenshots/before/circle-phone.jpg) · [After](v3-screenshots/after/circle-phone.jpg) |
-| Children | [Before](v3-screenshots/before/children-desktop.jpg) · [After](v3-screenshots/after/children-desktop.jpg) | [Before](v3-screenshots/before/children-phone.jpg) · [After](v3-screenshots/after/children-phone.jpg) |
-| Vehicles | [Before](v3-screenshots/before/vehicles-desktop.jpg) · [After](v3-screenshots/after/vehicles-desktop.jpg) | [Before](v3-screenshots/before/vehicles-phone.jpg) · [After](v3-screenshots/after/vehicles-phone.jpg) |
-| Planning | [Before](v3-screenshots/before/planning-desktop.jpg) · [After](v3-screenshots/after/planning-desktop.jpg) | [Before](v3-screenshots/before/planning-phone.jpg) · [After](v3-screenshots/after/planning-phone.jpg) |
-| Schedule | [Before](v3-screenshots/before/schedule-desktop.jpg) · [After](v3-screenshots/after/schedule-desktop.jpg) | [Before](v3-screenshots/before/schedule-phone.jpg) · [After](v3-screenshots/after/schedule-phone.jpg) |
-| Today / attention | [Before](v3-screenshots/before/attention-desktop.jpg) · [After](v3-screenshots/after/attention-desktop.jpg) | [Before](v3-screenshots/before/attention-phone.jpg) · [After](v3-screenshots/after/attention-phone.jpg) |
-| Uncovered | [Before](v3-screenshots/before/needs-driver-desktop.jpg) · [After](v3-screenshots/after/needs-driver-desktop.jpg) | [Before](v3-screenshots/before/needs-driver-phone.jpg) · [After](v3-screenshots/after/needs-driver-phone.jpg) |
-| Driver reply pending | [Before](v3-screenshots/before/driver-reply-desktop.jpg) · [After](v3-screenshots/after/driver-reply-desktop.jpg) | [Before](v3-screenshots/before/driver-reply-phone.jpg) · [After](v3-screenshots/after/driver-reply-phone.jpg) |
-| Confirmed | [Before](v3-screenshots/before/confirmed-desktop.jpg) · [After](v3-screenshots/after/confirmed-desktop.jpg) | [Before](v3-screenshots/before/confirmed-phone.jpg) · [After](v3-screenshots/after/confirmed-phone.jpg) |
-| Optional replacement | [Before](v3-screenshots/before/optional-swap-desktop.jpg) · [After](v3-screenshots/after/optional-swap-desktop.jpg) | [Before](v3-screenshots/before/optional-swap-phone.jpg) · [After](v3-screenshots/after/optional-swap-phone.jpg) |
-| Unavailable driver | [Before](v3-screenshots/before/unavailable-desktop.jpg) · [After](v3-screenshots/after/unavailable-desktop.jpg) | [Before](v3-screenshots/before/unavailable-phone.jpg) · [After](v3-screenshots/after/unavailable-phone.jpg) |
-| Declined | [Before](v3-screenshots/before/declined-desktop.jpg) · [After](v3-screenshots/after/declined-desktop.jpg) | [Before](v3-screenshots/before/declined-phone.jpg) · [After](v3-screenshots/after/declined-phone.jpg) |
-| Expired optional swap | [Before](v3-screenshots/before/expired-swap-desktop.jpg) · [After](v3-screenshots/after/expired-swap-desktop.jpg) | [Before](v3-screenshots/before/expired-swap-phone.jpg) · [After](v3-screenshots/after/expired-swap-phone.jpg) |
-| Cancelled | [Before](v3-screenshots/before/cancelled-desktop.jpg) · [After](v3-screenshots/after/cancelled-desktop.jpg) | [Before](v3-screenshots/before/cancelled-phone.jpg) · [After](v3-screenshots/after/cancelled-phone.jpg) |
-| Picked up | [Before](v3-screenshots/before/picked-up-desktop.jpg) · [After](v3-screenshots/after/picked-up-desktop.jpg) | [Before](v3-screenshots/before/picked-up-phone.jpg) · [After](v3-screenshots/after/picked-up-phone.jpg) |
-| Arrival awaiting receipt | [Before](v3-screenshots/before/awaiting-receipt-desktop.jpg) · [After](v3-screenshots/after/awaiting-receipt-desktop.jpg) | [Before](v3-screenshots/before/awaiting-receipt-phone.jpg) · [After](v3-screenshots/after/awaiting-receipt-phone.jpg) |
-| Completed | [Before](v3-screenshots/before/completed-desktop.jpg) · [After](v3-screenshots/after/completed-desktop.jpg) | [Before](v3-screenshots/before/completed-phone.jpg) · [After](v3-screenshots/after/completed-phone.jpg) |
-| Authentication | [Before](v3-screenshots/before/authentication-desktop.jpg) · [After](v3-screenshots/after/authentication-desktop.jpg) | [Before](v3-screenshots/before/authentication-phone.jpg) · [After](v3-screenshots/after/authentication-phone.jpg) |
-
-[Replacement dialog](v3-screenshots/after/replacement-dialog-phone.jpg) ·
-[Child dialog](v3-screenshots/after/child-dialog-phone.jpg) ·
-[Family dialog](v3-screenshots/after/family-dialog-phone.jpg).
+Reference and application views were compared at desktop and phone sizes using
+the same persisted Bob account and demo records, without mutations. Auth fields
+were empty and each application view started at the top with its default UI state.
+Generated screenshots and comparison viewers are excluded from the repository;
+the supplied reference sources and [v3 checklist](v3-parity-checklist.md) remain
+the visual contract.
 
 ## Validation and review
 

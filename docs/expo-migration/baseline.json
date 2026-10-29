@@ -20,7 +20,6 @@
     "/sign-in",
     "/sign-up"
   ],
-  "referenceScreenshots": "docs/v3-screenshots/after",
   "states": [
     "empty",
     "uncovered",
