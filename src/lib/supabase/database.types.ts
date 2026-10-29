@@ -5,7 +5,27 @@ export type Database = {
 
   "public": {
           Tables: {
-            "circle_families": {
+            "children": {
+                  Row: {
+                    "created_at": string,"display_name": string,"family_id": string,"id": string,"revision": number,"seat_requirement": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"display_name": string,"family_id": string,"id": string,"revision"?: number,"seat_requirement": string
+                  }
+                  Update: {
+                    "created_at"?: string,"display_name"?: string,"family_id"?: string,"id"?: string,"revision"?: number,"seat_requirement"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "children_family_id_fkey"
+      columns: ["family_id"]
+isOneToOne: false
+      referencedRelation: "families"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"circle_families": {
                   Row: {
                     "circle_id": string,"family_id": string,"joined_at": string,"removed_at": string | null
                   }
@@ -149,6 +169,116 @@ isOneToOne: false
                   Relationships: [
 
                   ]
+                },"ride_families": {
+                  Row: {
+                    "circle_id": string,"family_id": string,"responded_at": string | null,"ride_id": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "circle_id": string,"family_id": string,"responded_at"?: string | null,"ride_id": string,"status": string
+                  }
+                  Update: {
+                    "circle_id"?: string,"family_id"?: string,"responded_at"?: string | null,"ride_id"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ride_families_circle_id_family_id_fkey"
+      columns: ["circle_id","family_id"]
+isOneToOne: false
+      referencedRelation: "circle_families"
+      referencedColumns: ["circle_id","family_id"]
+    },{
+      foreignKeyName: "ride_families_ride_id_circle_id_fkey"
+      columns: ["ride_id","circle_id"]
+isOneToOne: false
+      referencedRelation: "rides"
+      referencedColumns: ["id","circle_id"]
+    }
+                  ]
+                },"ride_locations": {
+                  Row: {
+                    "destination": string,"pickup": string,"ride_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "destination": string,"pickup": string,"ride_id": string
+                  }
+                  Update: {
+                    "destination"?: string,"pickup"?: string,"ride_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ride_locations_ride_id_fkey"
+      columns: ["ride_id"]
+isOneToOne: true
+      referencedRelation: "rides"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ride_riders": {
+                  Row: {
+                    "child_id": string,"display_name": string,"family_id": string,"ride_id": string,"seat_requirement": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "child_id": string,"display_name": string,"family_id": string,"ride_id": string,"seat_requirement": string
+                  }
+                  Update: {
+                    "child_id"?: string,"display_name"?: string,"family_id"?: string,"ride_id"?: string,"seat_requirement"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ride_riders_child_id_family_id_fkey"
+      columns: ["child_id","family_id"]
+isOneToOne: false
+      referencedRelation: "children"
+      referencedColumns: ["id","family_id"]
+    },{
+      foreignKeyName: "ride_riders_ride_id_family_id_fkey"
+      columns: ["ride_id","family_id"]
+isOneToOne: false
+      referencedRelation: "ride_families"
+      referencedColumns: ["ride_id","family_id"]
+    }
+                  ]
+                },"rides": {
+                  Row: {
+                    "cancelled_at": string | null,"cancelled_by": string | null,"circle_id": string,"created_at": string,"created_by": string,"creation_digest": string,"creator_family_id": string,"destination_summary": string,"direction": string,"ends_at": string,"id": string,"pickup_summary": string,"revision": number,"starts_at": string,"timezone": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cancelled_at"?: string | null,"cancelled_by"?: string | null,"circle_id": string,"created_at"?: string,"created_by": string,"creation_digest": string,"creator_family_id": string,"destination_summary": string,"direction": string,"ends_at": string,"id": string,"pickup_summary": string,"revision"?: number,"starts_at": string,"timezone": string
+                  }
+                  Update: {
+                    "cancelled_at"?: string | null,"cancelled_by"?: string | null,"circle_id"?: string,"created_at"?: string,"created_by"?: string,"creation_digest"?: string,"creator_family_id"?: string,"destination_summary"?: string,"direction"?: string,"ends_at"?: string,"id"?: string,"pickup_summary"?: string,"revision"?: number,"starts_at"?: string,"timezone"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "rides_cancelled_by_fkey"
+      columns: ["cancelled_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "rides_circle_id_creator_family_id_fkey"
+      columns: ["circle_id","creator_family_id"]
+isOneToOne: false
+      referencedRelation: "circle_families"
+      referencedColumns: ["circle_id","family_id"]
+    },{
+      foreignKeyName: "rides_circle_id_fkey"
+      columns: ["circle_id"]
+isOneToOne: false
+      referencedRelation: "circles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "rides_creator_family_id_created_by_fkey"
+      columns: ["creator_family_id","created_by"]
+isOneToOne: false
+      referencedRelation: "family_members"
+      referencedColumns: ["family_id","user_id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -157,6 +287,9 @@ isOneToOne: false
           Functions: {
             "accept_invitation":
 { Args: { "p_display_name"?: string,"p_family_id"?: string,"p_kind": string,"p_new_family_name"?: string,"p_token": string }; Returns: string
+                           },
+"cancel_ride":
+{ Args: { "p_family_id": string,"p_revision": number,"p_ride_id": string }; Returns: number
                            },
 "circle_roster":
 { Args: { "p_circle_id": string }; Returns: {
@@ -174,6 +307,9 @@ isOneToOne: false
               "invitation_id": string,"token": string
             }[]
                            },
+"create_ride":
+{ Args: { "p_child_ids": (string)[],"p_circle_id": string,"p_destination": string,"p_destination_summary": string,"p_direction": string,"p_ends_at": string,"p_family_id": string,"p_id": string,"p_invited_family_ids": (string)[],"p_pickup": string,"p_pickup_summary": string,"p_starts_at": string,"p_timezone": string }; Returns: string
+                           },
 "invitation_preview":
 { Args: { "p_kind": string,"p_token": string }; Returns: {
               "expires_at": string,"scope_name": string
@@ -190,8 +326,27 @@ isOneToOne: false
 "remove_family_member":
 { Args: { "p_family_id": string,"p_user_id": string }; Returns: undefined
                            },
+"respond_to_ride_invitation":
+{ Args: { "p_accept": boolean,"p_child_ids": (string)[],"p_family_id": string,"p_revision": number,"p_ride_id": string }; Returns: number
+                           },
 "revoke_invitation":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"ride_offer":
+{ Args: { "p_id": string }; Returns: {
+              "can_cancel": boolean,"cancelled_at": string,"circle_id": string,"destination_summary": string,"direction": string,"ends_at": string,"family_id": string,"id": string,"pickup_summary": string,"revision": number,"starts_at": string,"status": string,"timezone": string
+            }[]
+                           },
+"ride_offers":
+{ Args: { "p_from": string,"p_until": string }; Returns: {
+              "can_cancel": boolean,"cancelled_at": string,"circle_id": string,"destination_summary": string,"direction": string,"ends_at": string,"family_id": string,"id": string,"pickup_summary": string,"revision": number,"starts_at": string,"status": string,"timezone": string
+            }[]
+                           },
+"save_own_child":
+{ Args: { "p_display_name": string,"p_family_id": string,"p_id": string,"p_revision": number,"p_seat_requirement": string }; Returns: string
+                           },
+"set_own_ride_riders":
+{ Args: { "p_child_ids": (string)[],"p_family_id": string,"p_revision": number,"p_ride_id": string }; Returns: number
                            }
           }
           Enums: {

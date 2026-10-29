@@ -86,9 +86,9 @@ commands to reuse the data. **To erase and recreate only the local database**, r
 `npm run supabase:reset` while Supabase is running. Do not use volume-pruning
 commands as a normal shutdown step.
 
-Versioned membership migrations live in `supabase/migrations/`. Apply them to your
+Versioned membership and ride migrations live in `supabase/migrations/`. Apply them to your
 existing local database with `npx supabase db push --local --network-id pool-local`;
-this preserves existing Auth users. There are no ride tables or seed families.
+this preserves existing Auth users. There are no seed families.
 
 ## Settings and Supabase clients
 
@@ -112,7 +112,7 @@ a confirmed, non-anonymous email identity. Normal clients retain public-key acce
 Auth pages, callbacks, redirects and refresh responses are private/no-store; the
 public landing page, static assets and health endpoint do not require Auth.
 All membership tables have RLS; protected writes use authenticated transactional
-commands. See [membership and invitation rules](docs/membership.md).
+commands. See [membership and invitation rules](docs/membership.md) and [ride planning and enrollment](docs/ride-planning.md).
 
 See [authentication setup and verification](docs/authentication.md) for local captured
 mail, confirmation/recovery templates, hosted SMTP and redirect configuration.
@@ -169,7 +169,7 @@ GitHub's **CI / checks** runs `npm ci`, `npm run check`, actual Auth browser tes
 and clean/upgrade migrations, generated-type drift and real RLS/command tests
 against disposable local Supabase, disposable Compose validation and the final
 `linux/amd64` container smoke on every PR to `main`
-and every merged `main` revision (including the R2 and R3 stacked PR bases). These
+and every merged `main` revision (including the R2, R3 and R4 stacked PR bases). These
 mandatory checks need no hosted account,
 `.env.local`, prototypes or cloud credentials. Guard regressions run with `npm test`.
 When checking inside the development container, explicitly use production mode:
