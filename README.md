@@ -5,8 +5,9 @@ for Postgres and authentication. Docker runs the app locally; the official
 Supabase CLI manages the local backend. Production uses a Vercel container and
 hosted Supabase.
 
-This is the application foundation. Accounts, ride workflows, live location,
-notifications and calendar sync are not implemented. The existing `sites/` and
+Adults can create an email/password account, confirm their email, sign in/out,
+and recover their password. `/app` is a protected empty shell; ride workflows,
+live location, notifications and calendar sync are not implemented. The existing `sites/` and
 `exports/` prototypes remain reference material and are excluded from builds.
 
 ## Start locally
@@ -101,13 +102,20 @@ the container itself. Both URLs reach the same local Supabase API gateway. The
 browser and server helpers use the same `pool-auth` cookie name so their
 different connection addresses do not create separate sessions.
 
-Use the browser helper in Client Components and the server helper in Route
-Handlers or Server Actions. The server helper writes refreshed cookies, so it
-must run in a context that permits cookie writes. When implementing login, add
-Supabase's standard SSR session-refresh proxy and validate users with the
-official authentication APIs. No login flow or authorization policy is included
-yet. Future data tables need explicit row-level security policies before being
-exposed to browser clients.
+Use the browser helper in Client Components, `createClient` from the server helper
+in Route Handlers/Server Actions, and `createReadOnlyClient` in Server Components.
+`src/proxy.ts` refreshes both request and response cookies before auth rendering.
+Protected rendering and mutations verify identity with `auth.getUser()` and require
+a confirmed, non-anonymous email identity. Normal clients retain public-key access.
+Auth pages, callbacks, redirects and refresh responses are private/no-store; the
+public landing page, static assets and health endpoint do not require Auth.
+Future data tables still need explicit row-level security policies before exposure.
+
+See [authentication setup and verification](docs/authentication.md) for local captured
+mail, confirmation/recovery templates, hosted SMTP and redirect configuration.
+After upgrading an existing local backend, restart Supabase normally (stop/start,
+without a database reset) to load the checked-in email templates. Never reset your
+existing backend to run the Auth tests.
 
 Both helpers use the public project key. A server-side request still acts on
 behalf of a user and must respect row-level security. The session helper does
@@ -145,15 +153,18 @@ Use `nvm use` (or another version manager) to select the exact `.nvmrc` version.
 
 ```sh
 npm run check
+npx playwright install --with-deps chromium
+npm run test:auth
 bash scripts/validate-compose.sh
 bash scripts/container-smoke.sh
 npm run supabase:check
 docker compose exec web npm run supabase:check -- --internal
 ```
 
-GitHub's **CI / checks** runs `npm ci`, `npm run check`, disposable Compose
-validation and the final `linux/amd64` container smoke on every PR to `main`
-and every merged `main` revision. These mandatory checks need no hosted account,
+GitHub's **CI / checks** runs `npm ci`, `npm run check`, actual Auth browser tests
+against disposable local Supabase, disposable Compose validation and the final
+`linux/amd64` container smoke on every PR to `main`
+and every merged `main` revision (and the R2 stack against R1). These mandatory checks need no hosted account,
 `.env.local`, prototypes or cloud credentials. Guard regressions run with `npm test`.
 When checking inside the development container, explicitly use production mode:
 `docker compose run --rm --no-deps -e NODE_ENV=production web npm run check`.

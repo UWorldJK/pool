@@ -77,12 +77,14 @@ for (const [name, mutate] of Object.entries({
   });
 }
 
-function sourceGit({ paths = ["package.json"], mode = "100644", diff = "", changedCI = false } = {}) {
+function sourceGit({ paths = ["package.json"], mode = "100644", diff = "", changedCI = false, authMail = false, backendDrift = "" } = {}) {
   return (...args) => {
     if (args[0] === "fetch") return "";
     if (args[0] === "diff") return diff;
     if (args[0] === "ls-tree") return args.includes("--name-only") ? paths.join("\0") : `${mode} blob hash\tpackage.json`;
     if (args[0] === "show") {
+      if (args[1].endsWith(":supabase/config.toml")) return "foundation config\n" +
+        (args[1].startsWith(`${sha}:`) && authMail ? readFileSync(new URL("../auth/email/local-config.toml", import.meta.url), "utf8") + backendDrift : "");
       if (args[1].endsWith(":vercel.json")) return '{"git":{"deploymentEnabled":false}}';
       return changedCI && !args[1].startsWith("HEAD:") ? "tampered" : "trusted CI";
     }
@@ -91,9 +93,12 @@ function sourceGit({ paths = ["package.json"], mode = "100644", diff = "", chang
 }
 test("source allows a schema-free tree but blocks migrations, config drift and CI tampering", () => {
   validateSource(sha, sourceGit());
+  validateSource(sha, sourceGit({ diff: "supabase/config.toml", authMail: true }));
   for (const options of [
     { paths: ["supabase/migrations/001.sql"] }, { paths: ["db/change.SQL"] },
     { paths: ["supabase/schemas/current.sql"] }, { diff: "supabase/config.toml" },
+    { diff: "supabase/config.toml", authMail: true, backendDrift: "enable_confirmations = false" },
+    { diff: "supabase/config.toml\nsupabase/seed.sql", authMail: true },
     { paths: [".env.local"] }, { paths: ["sites/reference.html"] },
     { paths: ["vercel.ts"] }, { paths: ["db/line\nbreak.sql"] },
     { paths: [".gitattributes"] },

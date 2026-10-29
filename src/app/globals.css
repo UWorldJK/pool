@@ -14,3 +14,95 @@ body {
 ::selection {
   background: #d8e7cd;
 }
+
+.auth-container {
+  display: flex;
+  min-height: 100dvh;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1rem;
+}
+.auth-card {
+  width: 100%;
+  max-width: 32rem;
+  background: white;
+  padding: clamp(1.25rem, 5vw, 3rem);
+  border: 1px solid #d5ddcf;
+  border-radius: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.brand {
+  display: inline-block;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+  text-decoration: none;
+}
+.auth-card h1 {
+  font-size: 1.8rem;
+  line-height: 1.2;
+  font-weight: 600;
+}
+.auth-card p {
+  margin: 1rem 0;
+  line-height: 1.6;
+}
+.auth-form {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.auth-form label {
+  display: grid;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+.auth-form input:not([type="hidden"]):not([type="checkbox"]) {
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid #63796b;
+  border-radius: 0.5rem;
+  padding: 0.65rem;
+}
+.auth-form .checkbox-label {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 2.75rem;
+}
+.auth-form input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+.auth-form button {
+  min-height: 3rem;
+  border-radius: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: #203c30;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+.auth-form button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.auth-card nav {
+  display: grid;
+  gap: 1rem;
+}
+a {
+  text-underline-offset: 0.2em;
+}
+.auth-card a:not(.brand),
+main > section > nav a {
+  text-decoration: underline;
+}
+:focus-visible {
+  outline: 3px solid #236c50;
+  outline-offset: 4px;
+}
+[role="alert"] {
+  color: #952c22;
+}
