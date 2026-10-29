@@ -4,17 +4,18 @@ import { useEffect, type ReactNode } from "react";
 import { Navigation, Unavailable } from "@/lib/navigation";
 import { useSession } from "@/services/session";
 import { Button, Paragraph, Box, Heading1 } from "./elements";
+import { SessionProblem } from "./session-problem";
 function useRemote<Props extends object, Result>(
   name: string,
   props: Props,
   load: (props: Props) => Promise<Result>,
   retain = false,
 ) {
-  const { user, ready } = useSession();
+  const { user, ready, error } = useSession();
   const query = useQuery({
     queryKey: ["account", user?.id ?? "public", name, props],
     queryFn: () => load(props),
-    enabled: ready,
+    enabled: ready && !error,
     retry: false,
     placeholderData: retain ? keepPreviousData : undefined,
   });
@@ -32,6 +33,7 @@ export function createScreen<
   render: (model: NonNullable<Result["model"]>) => ReactNode,
 ) {
   return function Screen() {
+    const session = useSession();
     const params = useLocalSearchParams<Record<string, string>>();
     const pathname = usePathname();
     const result = useRemote(pathname, params, async (values) =>
@@ -40,6 +42,7 @@ export function createScreen<
         searchParams: Promise.resolve(values),
       } as Props),
     );
+    if (session.error) return <SessionProblem />;
     if (result.error instanceof Unavailable)
       return (
         <Box>
@@ -83,7 +86,9 @@ export function createPanel<
   render: (model: NonNullable<Result["model"]>) => ReactNode,
 ) {
   return function Panel(props: Props) {
+    const session = useSession();
     const result = useRemote(cacheKey, props, load, true);
+    if (session.error) return <SessionProblem />;
     if (result.error instanceof Unavailable)
       return <Paragraph role="alert">{result.error.message}</Paragraph>;
     if (result.error && !result.data)

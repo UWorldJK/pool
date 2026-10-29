@@ -1,6 +1,7 @@
 import NetInfo from "@react-native-community/netinfo";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -23,16 +24,23 @@ type SessionState = {
   user: User | null;
   ready: boolean;
   ended?: SessionEndReason;
+  error?: string;
+  retry: () => void;
 };
 const Session = createContext<SessionState>({
   user: null,
   ready: false,
+  retry: () => {},
 });
 export const useSession = () => useContext(Session);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const completedEnd = useRef<SessionEndReason | undefined>(undefined);
-  const [state, setState] = useState<SessionState>({
+  const verifier = useRef<() => Promise<void>>(async () => {});
+  const retry = useCallback(() => {
+    void verifier.current();
+  }, []);
+  const [state, setState] = useState<Omit<SessionState, "retry">>({
     user: null,
     ready: false,
   });
@@ -51,7 +59,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let account: string | null = null;
     async function verify() {
       const current = ++revision;
-      const user = await verifiedUser(client);
+      let user: User | null;
+      try {
+        user = await verifiedUser(client);
+      } catch {
+        if (!alive || current !== revision) return;
+        await queryClient.cancelQueries();
+        if (!alive || current !== revision) return;
+        queryClient.clear();
+        account = null;
+        setState((previous) => ({
+          ...previous,
+          user: null,
+          ready: true,
+          error:
+            "Your saved session could not be read or verified. Try again. If this continues, restart Pool and check your connection.",
+        }));
+        return;
+      }
       if (!alive || current !== revision) return;
       if (account !== (user?.id ?? null)) {
         await queryClient.cancelQueries();
@@ -60,8 +85,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       if (user) completedEnd.current = undefined;
       if (alive && current === revision)
-        setState({ user, ready: true, ended: completedEnd.current });
+        setState((previous) => ({
+          ...previous,
+          user,
+          ready: true,
+          error: undefined,
+          ended: completedEnd.current,
+        }));
     }
+    verifier.current = verify;
     void verify();
     const { data } = client.auth.onAuthStateChange((event, session) => {
       // Capture the completed explicit action while Supabase emits SIGNED_OUT.
@@ -97,6 +129,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       client.auth.stopAutoRefresh();
     return () => {
       alive = false;
+      verifier.current = async () => {};
       data.subscription.unsubscribe();
       subscription.remove();
       stopNetwork();
@@ -109,7 +142,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [pathname]);
   return (
     <QueryClientProvider client={queryClient}>
-      <Session.Provider value={state}>{children}</Session.Provider>
+      <Session.Provider value={{ ...state, retry }}>
+        {children}
+      </Session.Provider>
     </QueryClientProvider>
   );
 }
