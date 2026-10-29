@@ -54,6 +54,8 @@ for (const template of ["confirmation", "recovery"])
     `auth/email/${template}.html`,
     join(directory, `auth/email/${template}.html`),
   );
+// A native flow starts a separate UI driver for each stage; keep captured mail
+// valid across those launches. Browser expiry journeys retain their short TTL.
 let config = readFileSync("supabase/config.toml", "utf8")
   .replace('project_id = "pool"', `project_id = "${project}"`)
   .replaceAll("543", "553")
@@ -69,7 +71,7 @@ let config = readFileSync("supabase/config.toml", "utf8")
   .replace("[studio]\nenabled = true", "[studio]\nenabled = false")
   .replace(
     "[auth.email]\n",
-    '[auth.email]\nmax_frequency = "1s"\notp_expiry = 10\n',
+    `[auth.email]\nmax_frequency = "1s"\notp_expiry = ${process.argv.includes("--ios") ? 300 : 10}\n`,
   );
 config += `
 [auth.rate_limit]
@@ -397,44 +399,56 @@ try {
     await new Promise((resolveReady) => setTimeout(resolveReady, 500));
   }
   if (!ready) throw new Error("Auth test app did not become ready");
-  if (process.argv.includes("--ios")) {
-    await run(
-      process.execPath,
-      ["scripts/ios-test.mjs", "--from-harness"],
-      env,
+  {
+    const native = process.argv.includes("--ios");
+    const watch = process.argv.includes(
+      native ? "--watch-ios" : "--watch-browser",
     );
-  } else {
-    const watch = process.argv.includes("--watch-browser");
+    let reuseNativeProject = process.argv.includes("--reuse-project");
     do {
       try {
-        await run(
-          process.execPath,
-          [
-            "node_modules/@playwright/test/cli.js",
-            "test",
-            ...(process.argv.includes("--membership-only")
-              ? ["tests/auth/membership.spec.mjs"]
-              : process.argv.includes("--rides-only")
-                ? ["tests/auth/rides.spec.mjs"]
-                : process.argv.includes("--drivers-only")
-                  ? ["tests/auth/drivers.spec.mjs"]
-                  : process.argv.includes("--replacements-only")
-                    ? ["tests/auth/replacements.spec.mjs"]
-                    : process.argv.includes("--handoffs-only")
-                      ? ["tests/auth/handoffs.spec.mjs"]
-                      : process.argv.includes("--presentation-only")
-                        ? ["tests/auth/presentation.spec.mjs"]
-                        : process.argv.includes("--session-only")
-                          ? ["tests/auth/session.spec.mjs"]
-                          : []),
-          ],
-          env,
-        );
+        if (native)
+          await run(
+            process.execPath,
+            [
+              "scripts/ios-test.mjs",
+              "--from-harness",
+              ...(reuseNativeProject ? ["--reuse-project"] : []),
+            ],
+            env,
+          );
+        else
+          await run(
+            process.execPath,
+            [
+              "node_modules/@playwright/test/cli.js",
+              "test",
+              ...(process.argv.includes("--membership-only")
+                ? ["tests/auth/membership.spec.mjs"]
+                : process.argv.includes("--rides-only")
+                  ? ["tests/auth/rides.spec.mjs"]
+                  : process.argv.includes("--drivers-only")
+                    ? ["tests/auth/drivers.spec.mjs"]
+                    : process.argv.includes("--replacements-only")
+                      ? ["tests/auth/replacements.spec.mjs"]
+                      : process.argv.includes("--handoffs-only")
+                        ? ["tests/auth/handoffs.spec.mjs"]
+                        : process.argv.includes("--presentation-only")
+                          ? ["tests/auth/presentation.spec.mjs"]
+                          : process.argv.includes("--session-only")
+                            ? ["tests/auth/session.spec.mjs"]
+                            : []),
+            ],
+            env,
+          );
       } catch (error) {
         if (!watch) throw error;
         console.error(error.message);
       }
       if (!watch) break;
+      // Test/source iterations still run xcodebuild and bundle current JS.
+      // Restart the watcher after dependency or Expo native-config changes.
+      reuseNativeProject = native;
       const { createInterface } = await import("node:readline/promises");
       const input = createInterface({
         input: process.stdin,

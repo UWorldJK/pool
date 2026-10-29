@@ -112,17 +112,23 @@ if (
     if (!device) throw new Error("Install an iPhone simulator runtime first.");
     simulator = device.udid;
     console.log(`Preparing iOS Simulator: ${device.name}`);
-    console.log(
-      "Generating the Expo iOS project and installing native dependencies.",
-    );
-    run(process.execPath, [
-      "node_modules/expo/bin/cli",
-      "prebuild",
-      "--platform",
-      "ios",
-      "--no-install",
-    ]);
-    run("pod", ["install"], { cwd: resolve("ios") });
+    const reuseProject =
+      process.argv.includes("--reuse-project") &&
+      existsSync("ios/Pool.xcworkspace") &&
+      existsSync("ios/Pods/Manifest.lock");
+    if (!reuseProject) {
+      console.log(
+        "Generating the Expo iOS project and installing native dependencies.",
+      );
+      run(process.execPath, [
+        "node_modules/expo/bin/cli",
+        "prebuild",
+        "--platform",
+        "ios",
+        "--no-install",
+      ]);
+      run("pod", ["install"], { cwd: resolve("ios") });
+    }
     directory = process.env.POOL_IOS_DERIVED_DATA
       ? resolve(process.env.POOL_IOS_DERIVED_DATA)
       : mkdtempSync(join(tmpdir(), "pool-ios-"));

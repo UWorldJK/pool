@@ -14,6 +14,11 @@ import {
 export async function nativeJourneys({ device, run, directory }) {
   const email = `pool-ios-${crypto.randomUUID()}@example.test`,
     password = "Pool-native-browser-2026!";
+  const observer = createClient(
+    process.env.EXPO_PUBLIC_SUPABASE_URL,
+    process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    { auth: { persistSession: false } },
+  );
   let sequence = 0;
   const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const tap = (text) => ({ tapOn: { text: escape(text) } });
@@ -40,7 +45,17 @@ export async function nativeJourneys({ device, run, directory }) {
     { tapOn: { id: `field-${fieldNames[label]}` } },
     { eraseText: 200 },
     { inputText: value },
-    "hideKeyboard",
+    ...(label === "Password"
+      ? []
+      : [
+          {
+            assertVisible: {
+              id: `field-${fieldNames[label]}`,
+              text: escape(value),
+            },
+          },
+        ]),
+    { pressKey: "enter" },
   ];
   function flow(commands) {
     const path = join(directory, `journey-${++sequence}.yaml`);
@@ -54,6 +69,7 @@ export async function nativeJourneys({ device, run, directory }) {
                   element: command.tapOn,
                   direction: "DOWN",
                   timeout: 20000,
+                  centerElement: true,
                 },
               },
               command,
@@ -93,26 +109,45 @@ export async function nativeJourneys({ device, run, directory }) {
     ...input("Email address", email),
     ...input("Password", password),
     tap("I am at least 18 years old."),
+    // React Native exposes iOS checkbox state as its accessibility value.
+    { assertVisible: { id: "field-adult-yes", text: "checkbox, checked" } },
     tap("Create account"),
     { assertVisible: "Check your email.*" },
   ]);
   const link = new URL(await mailLink());
+  const beforeLink = await observer.auth.signInWithPassword({
+    email,
+    password,
+  });
+  assert.equal(
+    beforeLink.error?.code,
+    "email_not_confirmed",
+    "Signup must require explicit email confirmation.",
+  );
   flow([
     open(link.pathname + link.search),
+    { assertVisible: "Confirm your email" },
+  ]);
+  const beforeAcceptance = await observer.auth.signInWithPassword({
+    email,
+    password,
+  });
+  assert.equal(
+    beforeAcceptance.error?.code,
+    "email_not_confirmed",
+    "Opening an email link must not confirm it automatically.",
+  );
+  flow([
     tap("Confirm email"),
     { assertVisible: "Welcome to Pool" },
-    { tapOn: { id: "field-name" } },
-    { inputText: "Native family" },
+    ...input("Family name", "Native family"),
     ...input("Your display name", "Native guardian"),
+    { assertVisible: { id: "field-name", text: "Native family" } },
+    { assertNotVisible: "Open saved membership" },
     tap("Create family"),
     tap("Open saved membership"),
     { assertVisible: "Native family" },
   ]);
-  const observer = createClient(
-    process.env.EXPO_PUBLIC_SUPABASE_URL,
-    process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    { auth: { persistSession: false } },
-  );
   const signed = await observer.auth.signInWithPassword({ email, password });
   assert.equal(signed.error, null);
   const ownFamily = (
@@ -380,6 +415,9 @@ export async function nativeJourneys({ device, run, directory }) {
       { assertVisible: "Ride completed.*" },
       { takeScreenshot: "pool-ios-completed" },
     ]);
+    console.log(
+      "Native/browser journey passed: signup, confirmation, persisted session, membership, planning, independent driver acceptance/consent, optional replacement and per-child handoff receipts.",
+    );
   } finally {
     await web.context.close();
     await browser.close();
