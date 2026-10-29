@@ -17,3 +17,9 @@ exports
 supabase
 docs
 README.md
+
+.expo
+dist
+dist-ios
+ios
+android
