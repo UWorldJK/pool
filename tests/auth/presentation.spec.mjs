@@ -42,14 +42,16 @@ test("R8 shared layouts retain desktop composition, mobile navigation, keyboard 
     await expect(
       dialog.getByRole("button", { name: "Close Your Pool", exact: true }),
     ).toBeFocused();
-    await page.keyboard.press("Shift+Tab");
-    await expect(
-      dialog.getByRole("button", { name: "Done", exact: true }),
-    ).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(
-      dialog.getByRole("button", { name: "Close Your Pool", exact: true }),
-    ).toBeFocused();
+    for (let cycle = 0; cycle < 5; cycle++) {
+      await page.keyboard.press("Shift+Tab");
+      await expect(
+        dialog.getByRole("button", { name: "Done", exact: true }),
+      ).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(
+        dialog.getByRole("button", { name: "Close Your Pool", exact: true }),
+      ).toBeFocused();
+    }
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible();
     await expect(menu).toBeFocused();

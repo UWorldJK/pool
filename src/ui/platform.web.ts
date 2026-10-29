@@ -20,7 +20,9 @@ export function modalFocus(id: string, close?: () => void) {
       (n) => n.getClientRects().length && !n.hasAttribute("disabled"),
     );
   const focus = () => visible()[0]?.focus();
-  focus();
+  // RN Web may already have focused a control before its onShow callback.
+  // Never steal a user's subsequent Tab focus with delayed autofocus.
+  if (!element.contains(document.activeElement)) focus();
   const handler = (event: KeyboardEvent) => {
     if (event.key === "Escape") {
       event.preventDefault();

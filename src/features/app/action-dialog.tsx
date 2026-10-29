@@ -35,6 +35,7 @@ export function ActionDialog({
   const { width } = useWindowDimensions();
   const id = useId();
   const [restore, setRestore] = useState<() => void>(() => () => {});
+  const focusCleanup = useRef<() => void>(() => {});
   useEffect(() => {
     if (previousPath.current !== pathname) {
       setOpen(false);
@@ -43,18 +44,8 @@ export function ActionDialog({
   }, [pathname]);
   useEffect(() => {
     if (!open) return;
-    let stop = () => {};
-    const timer = setTimeout(() => {
-      stop = modalFocus(id, () => {
-        setOpen(false);
-        restore();
-      });
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      stop();
-    };
-  }, [open, id, restore]);
+    return () => focusCleanup.current();
+  }, [open]);
   function close() {
     setOpen(false);
     restore();
@@ -104,6 +95,10 @@ export function ActionDialog({
         transparent
         animationType={Platform.OS === "web" ? "none" : "fade"}
         onRequestClose={close}
+        onShow={() => {
+          focusCleanup.current();
+          focusCleanup.current = modalFocus(id, close);
+        }}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
