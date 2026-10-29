@@ -1,86 +1,87 @@
-# Expo migration acceptance record
+# Expo migration guide
 
-PR #10 replaces the Next.js frontend with one Expo/React Native application for
-responsive web and iOS. PRs #3–#9 and all existing Supabase migrations, RLS and RPC
-contracts are preserved. PR #11 is a separate prototype and is not incorporated.
+PR [#10](https://github.com/UWorldJK/pool/pull/10) replaces the Next.js frontend
+with one Expo Router/React Native application for responsive web and iOS, stacked
+on PR #9. Existing Supabase migrations, generated types, RLS and RPC contracts
+remain unchanged. PR #11's separate prototype is excluded.
 
-## Baseline and layout contract
+## Setup and compatibility
 
-The pre-migration revision is recorded in `baseline.json` with its routes,
-commands, states and target viewports. Before replacement, the original **12 web
-journeys** and clean/upgrade/database authorization checks passed in an independent
-checkout using its own disposable Supabase project. Generated screenshots and
-comparison viewers are excluded from Git.
+Follow the root [setup guide](../../README.md#local-setup) for Node 24.22.1,
+Docker/Supabase, web development and iOS prerequisites. Existing accounts and
+records need no migration; old Next.js browser sessions require signing in again.
+Rename `NEXT_PUBLIC_SUPABASE_*` settings to `EXPO_PUBLIC_SUPABASE_*` and remove
+`SUPABASE_INTERNAL_URL`. Public settings are embedded at build time; secrets must
+never enter client settings. See [authentication](../authentication.md) for
+session persistence, email confirmation, PKCE and invitation links.
 
-Mobile is the primary interaction target: persistent phone navigation, touchable
-labels, safe areas, keyboard avoidance, native selection/date controls and
-explicit action outcomes. Desktop retains the sidebar/top bar, bounded content,
-multi-column cards, route details, seven-day schedule and keyboard/browser
-navigation. Shared React Native styles drive responsive composition. Small web
-adapters retain native browser date/select controls, focus management and links.
-There is no WebView or separate product implementation.
+The production container serves the web export on port 3000 with compressed,
+immutable assets, private/no-store HTML, direct-route fallback, missing-asset 404s
+and uncached `/api/health` liveness JSON. Actions remains the delivery owner;
+`checks` requires both `web` and `ios`. Protected-main, trusted-source, environment
+and migration ordering gates remain in force. See [deployment](../deployment.md).
 
-New destinations reset the shared content scroller, while refetches retain the
-current form position. Native detail screens expose an explicit back action and
-headers can grow with larger text. Cross-platform journeys use the visible refresh
-control when another participant has changed a ride.
+## Layout and behavior contract
 
-Visual checks covered 14 matching named screens at desktop and phone sizes;
-independently created disposable records had different fictional participants
-and identifiers. No existing developer records were reset or seeded for these
-checks. The [v3 checklist](../v3-parity-checklist.md) remains the visual contract.
+`exports/pool-v3.html` is the visual reference; `sites/pool-prototype-v3/dist`,
+its design notes and behavioral tests clarify rendering and interactions. The
+export's malformed font import is preserved; the distribution establishes the
+intended DM Sans/Manrope typography. Supplied `sites/` and `exports/` references
+are preserved. Generated screenshots and comparison viewers are excluded from Git.
 
-## Validation recorded on October 28–29, 2026
+- Retain DM Sans body text, Manrope headings, sage/lime colors, green/amber status
+  pills, the 232px desktop sidebar, 85px top bar and rounded card composition.
+- Keep persistent phone navigation, safe areas, keyboard avoidance and native
+  date/select controls. Web retains browser controls, direct links, back/forward,
+  visible focus, dialog trapping/Escape/restoration and 320px reflow.
+- Show real family/circle context, children, vehicles and invitations. Today uses
+  actual trip responsibilities and attention tasks; schedule retains all seven
+  days, both directions and desktop multi-column cards.
+- Keep authorized route details, driver/candidate identity, capacity, restraints
+  and consent visible. Planning groups route/privacy fields, times/timezone and
+  riders; focused dialogs handle secondary mutations.
+- Retain drafts and saved/error outcomes through refetches; new destinations reset
+  scrolling. Account-scoped caches clear on account changes and refresh on
+  foreground/reconnect or explicit request. Writes have no automatic retries or
+  offline queue; request IDs remain stable through retries.
+- Driver acceptance and each family's own-child consent remain separate. Optional
+  swaps preserve available originals; unavailable replacements remain uncovered
+  until acceptance and all required consent complete. Arrival requires independent
+  guardian receipt per child; only the final receipt completes the ride.
 
-- Lint, TypeScript, **64 unit tests** and **7 shared native component tests** passed.
-- Web and Hermes iOS JavaScript exports passed. The production Linux container
-  smoke and Compose validation passed.
-- Expo's dependency compatibility check passes with React Native 0.88.0 and
-  TypeScript 6.0.3; iOS prebuild generates the project successfully.
-- All **13 browser journeys** passed across application and focused Auth runs
-  against fresh disposable backends. The final session run verifies the explicit
-  sign-out/guard redirect race correction. A further focused layout pass checked
-  the final planning composition, navigation, keyboard
-  dialogs, focus restoration, saved outcomes and axe accessibility at desktop,
-  phone and 320px widths.
-- Clean and upgrade schemas, generated types, authorization/privacy, capacity,
-  restraints, stale revisions, deadlines, concurrent commands and transactional
-  release ordering passed. No Supabase migration or generated database type changed.
-- CI builds a Release Simulator application and runs public signup/sign-in,
-  deep-link and restart smoke checks. **Full native backend journeys, VoiceOver
-  and large-text acceptance remain pending** the local full Xcode/runtime
-  prerequisite. Bundle, component and public-route smoke checks do not satisfy
-  those acceptance items.
+Necessary deviations from the prototype: no map, GPS, ETA, contact/notification
+controls, sample identities, simulated replies or automatic approvals. Real
+privacy, capacity, deadlines, membership, reservations, revisions, active-trip
+freezes and immutable history remain database-enforced. Private invitation and
+proposed-driver projections stay minimal until authorization permits details.
+Candidate vehicles are labeled explicitly; no original-vehicle snapshot is
+invented. Real planning uses a fuller page and full-week visibility.
 
-| Inventory                                                                     | Web evidence                                         | iOS status                                                                   |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Signup, confirmation, sign-in/out, recovery/reset, sessions and PKCE callback | `session.spec.mjs`                                   | Bundle/components pass; simulator pending                                    |
-| Families, guardians, circles, fragment invites, preview/accept/revoke/removal | `membership.spec.mjs`                                | Cross-platform journey scripted; simulator pending                           |
-| Children, seats, ride creation/enrollment/cancel, schedule and DST            | `rides.spec.mjs`, command/time tests                 | Cross-platform journey scripted; simulator pending                           |
-| Vehicles, nomination, independent acceptance and own-child consent/revocation | `drivers.spec.mjs`                                   | Cross-platform journey scripted; simulator pending                           |
-| Optional/unavailable replacements, declined/expired/cancelled states          | `replacements.spec.mjs`                              | Optional cross-platform journey scripted; remaining native inventory pending |
-| Pickup, arrival, independent per-child receipt and immutable history          | `handoffs.spec.mjs`                                  | Cross-platform journey scripted; simulator pending                           |
-| Layout, keyboard, direct routes, errors/drafts and saved results              | `presentation.spec.mjs`, shared component/HTTP tests | Smoke scripted; full native inventory pending                                |
+## Recorded validation and remaining acceptance
 
-This is an implementation and web verification record, not a declaration of full
-cross-platform acceptance. No inventory omissions have been accepted as scope changes.
+The Next.js baseline at `85ed3c5` passed its original 12 browser journeys before
+replacement. [baseline.json](baseline.json) records routes, commands, states and
+viewports. Migration checks recorded on October 28–29, 2026 include:
 
-## Shared behavior
+- Expo compatibility, lint, TypeScript, 64 unit tests, 7 shared component tests,
+  web/Hermes iOS exports, Compose validation and production Linux container smoke.
+- All 13 browser journeys across application and focused Auth runs on disposable
+  backends: sessions, membership, rides, driver acceptance/consent, replacements
+  and independent child handoffs. Layout checks covered 14 matching named views
+  at 1440×1000 and 390×844, plus keyboard/focus, saved outcomes and axe at 320px.
+- Clean/upgrade schemas, generated-type drift, authorization/privacy, capacity,
+  restraints, stale revisions, deadlines, concurrency and release ordering.
+- CI at application revision `8539515` passed web/database/container checks and
+  the ad-hoc signed Release Simulator build/public-route smoke, including signup,
+  sign-in navigation, deep links and restart. Current CI results remain on PR #10.
 
-Queries use account-scoped caches, clearing on account changes and refreshing on
-foreground/reconnect or explicit request. Panel refresh retains its mounted
-controls so a saved replacement cannot close the review dialog or erase its
-outcome. Writes remain explicit, do not queue offline, and do not automatically
-retry. Request UUIDs remain stable through retries; revisions remain current.
+**Full native acceptance remains pending:** real-backend native/browser journeys,
+VoiceOver, large text and the remaining native workflow inventory. The journeys
+are scripted; bundle/component and public-route smoke checks do not complete
+this acceptance. No Android, physical-device, universal-link or TestFlight
+acceptance is claimed.
 
-Typed command services preserve existing validation, safe error messages and
-transactional Supabase RPCs. Driver acceptance never supplies child consent;
-arrival never supplies guardian receipt. Optional swaps preserve available
-originals; unavailable replacements remain uncovered until all real replies save.
-Capacity, restraints, deadlines, reservations, current memberships, stale versions,
-active-trip freezes and completed history remain database-enforced.
-
-## Verification commands
+## Verification
 
 ```sh
 npm run check
@@ -91,96 +92,37 @@ bash scripts/container-smoke.sh
 npm run test:ios
 ```
 
-The default browser/database harness owns temporary projects on 55320–55329 and
-cleans up only its own resources. `--watch-browser` is an optional local debugging
-mode that retains that same disposable project between rebuilds; enter `q` to
-clean it up. It never targets the developer's `pool` project or hosted Supabase.
+The browser/database harness owns disposable backends on ports 55320–55329 and
+never resets the developer's backend or targets hosted Supabase. Optional
+`--watch-browser` retains only that disposable project; enter `q` to clean it up.
+Replay tests capture actual mutation RPCs and replay them with another adult's
+token; UI guards never substitute for database authorization.
 
-Browser replay assertions capture the actual mutation RPC and replay it with a
-different real user's token. They do not retain Next.js Server Action wire-format
-assumptions. Session tests cover browser storage, token rotation, separate users,
-recovery, invalid/expired sessions, email links and PKCE. Shared component tests
-cover retained drafts, explicit consent and native secure-storage behavior.
+`build:ios` exports JavaScript. Simulator journeys additionally require macOS,
+full Xcode 26.4+, an iPhone runtime, CocoaPods, Playwright Chromium and Maestro
+(`brew install mobile-dev-inc/tap/maestro`). The runner generates the ignored iOS
+project and builds an ad-hoc signed Release Simulator app. The signature enables
+Keychain/SecureStore access without an Apple certificate, team or provisioning
+profile. CI retains native diagnostics and caches toolchain-specific build inputs;
+each run still bundles current source and runs smoke checks.
 
-## Native verification
+## Web startup performance
 
-`npm run build:ios` compiles the shared Hermes JavaScript bundle. Full simulator
-acceptance additionally needs macOS, **Xcode 26.4+**, an installed iPhone runtime,
-CocoaPods, Playwright Chromium and Maestro:
-
-```sh
-brew install mobile-dev-inc/tap/maestro
-npm run test:ios
-```
-
-The native runner generates the ignored iOS project, builds a locally ad-hoc signed
-Release Simulator app and runs the UI smoke. Simulator Keychain access requires
-the signed application identifier; disabling signing causes SecureStore reads to
-fail. Xcode's local signing identity requires no Apple certificate, team or
-provisioning profile. Session-read failures also show an explicit retry action
-instead of leaving public routes loading indefinitely. It builds only the selected simulator
-architecture and boots the simulator after compilation, avoiding a second unused
-architecture and simulator CPU load during the build. Cold CI builds have a
-45-minute budget. The full harness then exercises a native
-adult and an independent browser participant: real captured-mail signup, session
-restart, family/circle/child/vehicle setup, manual invitation, ride enrollment,
-separate acceptance and fresh child consent, an optional replacement, per-child
-arrival and independent receipt. UI mutations use Maestro or Playwright; a
-public-key observer only reads persisted results.
-
-CI retains Maestro screenshots/hierarchies and simulator application logs for
-failed smoke runs. Its native dependency/build cache is scoped to the toolchain,
-architecture and configuration inputs; each run still bundles the current source
-and executes the required smoke. Release delivery never consumes this cache.
-
-This machine initially has Command Line Tools selected and no `simctl`; no local
-simulator, VoiceOver or native UI acceptance is claimed without that prerequisite.
-The macOS CI job builds and launches the simulator smoke; it does not substitute
-for the local full-backend native journeys. No device signing, physical-device
-release, universal links, Android acceptance or TestFlight distribution is included.
-
-## Web startup measurements
-
-`performance.json` records fresh-context Chromium measurements on matching
-production builds, routes and viewport sizes. Reproduce with the preserved
-baseline served on one port and the Expo export on another:
+[performance.json](performance.json) retains raw Chromium samples from matching
+production builds. With the preserved baseline and Expo export on separate ports:
 
 ```sh
 node scripts/measure-web.mjs http://localhost:3002 http://localhost:3003
 ```
 
-The Expo web target is client rendered, so public routes lose the old server's
-immediate HTML paint and carry the React Native Web/router runtime. Compression,
-route splitting, browser font-display swap and a web-specific navigation shell
-reduce that cost. These loopback measurements are not mobile-network benchmarks
-or evidence of equal loading performance. Rendering/layout and genuine saved
-workflow outcomes remain separate acceptance checks.
+| Median measurement | Next.js baseline | Expo web |
+| --- | ---: | ---: |
+| Visible screen ready | 54 ms | 424 ms |
+| First contentful paint | 40 ms | 432 ms |
+| Encoded script bytes | 135 KiB | 442 KiB |
+| Signup → sign-in navigation | 90 ms | 367 ms |
 
-Medians across the captured route/viewport samples:
-
-| Measurement                 | Next.js baseline | Expo web |
-| --------------------------- | ---------------: | -------: |
-| Visible screen ready        |            54 ms |   424 ms |
-| First contentful paint      |            40 ms |   432 ms |
-| Encoded script bytes        |          135 KiB |  442 KiB |
-| Signup → sign-in navigation |            90 ms |   367 ms |
-
-This is a material startup/navigation regression relative to server-rendered
-Next.js. Investigation identified the client-rendered shell and larger shared
-runtime; compression, route chunks, font swapping and the web-only router outlet
-are applied. Remaining startup cost is explicit review evidence, not a claim of
-performance parity or measured performance on a real mobile network.
-
-## Delivery and compatibility
-
-The Vercel container still serves port 3000 and uncached `/api/health` liveness
-JSON. Expo assets are compressed and immutable; app/auth HTML remains private and
-no-store. Missing assets return 404 rather than the app shell. Existing Actions
-trust, protected-main, environment and migration ordering gates remain enforced;
-`checks` aggregates `web` and `ios`, and delivery requires all three exact jobs.
-
-Existing accounts and schema need no migration. Old Next.js browser sessions
-require signing in again. Rename local/deployment public settings to
-`EXPO_PUBLIC_SUPABASE_*`; secrets never belong in client settings. Native projects,
-exports and caches are ignored; the original `sites/` and `exports/` references
-are preserved.
+This is a material startup/navigation regression from server-rendered Next.js.
+The client-rendered shell/shared runtime adds cost despite compression, route
+chunks, font-display swap and the web router outlet. Loopback samples do not
+establish mobile-network performance or equal loading performance.
