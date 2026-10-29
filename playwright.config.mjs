@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 if (
   process.env.AUTH_TEST_DISPOSABLE !== "1" ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL !== "http://localhost:55321"
+  process.env.EXPO_PUBLIC_SUPABASE_URL !== "http://localhost:55321"
 ) {
   throw new Error(
     "Run npm run test:auth to create the disposable local backend; hosted Auth testing is forbidden.",

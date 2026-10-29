@@ -92,7 +92,7 @@ replacement command tests for optional preservation, unavailable outcomes, fresh
 acceptance/consent, duplicate/partial/foreign replies, competing requests, direct
 writes, stale/late responses, capacity/version/reservation failures, atomic rollback
 and withdrawal/cancellation/pickup/deadline races. Browser accounts exercise real
-nomination, acceptance and own-family consent, Server Action replay denials, mobile
+nomination, acceptance and own-family consent, command RPC replay denials, mobile
 reflow and persisted outcomes through an independent login session.
 
 Hosted provider projects, credentials, protected environments, SMTP/origins and

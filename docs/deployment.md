@@ -1,5 +1,14 @@
 # Deployment
 
+> Expo migration: the application now exports one React Native Web SPA. The
+> container serves `dist/` through `scripts/serve.mjs`, including compression,
+> direct-route fallback and unchanged uncached health JSON. `CI / checks` is an
+> aggregate of `web` (Linux/database/browser/container checks) and `ios` (macOS
+> simulator build/component/smoke checks). The delivery guard requires all three
+> exact jobs to succeed. Existing trust, migration and protected-main gates below
+> remain authoritative. Earlier Next.js-specific validation records describe the
+> pre-migration baseline, not the current runtime.
+
 ## Delivery contract
 
 GitHub Actions is the sole delivery owner. `CI / checks` validates the exact PR
@@ -25,7 +34,7 @@ Version 65.4.0 uses `--environment`; `--target` is its deprecated alias.
 
 The [Vercel container path](https://vercel.com/docs/functions/runtimes/container)
 stays `Dockerfile.vercel`, the Container preset and Vercel's own registry. There is
-no extra registry or native Next.js deployment. `vercel.json` disables automatic
+no extra registry. `vercel.json` disables automatic
 Git deployments with
 [`git.deploymentEnabled: false`](https://vercel.com/docs/project-configuration/git-configuration).
 The provider Git integration must also be disconnected, including deploy hooks
@@ -98,23 +107,23 @@ Actions responsible for migrations. Do not create a database per PR for this pla
 
 Repository variables (identities are public configuration, never credentials):
 
-| Variable | Value/purpose |
-| --- | --- |
-| `DELIVERY_ENABLED` | Leave absent/false until setup is verified; `true` enables gates. |
-| `TEST_SUPABASE_URL` | Canonical HTTPS URL for the isolated test project. |
-| `PRODUCTION_SUPABASE_URL` | Distinct canonical production URL. |
-| `TEST_VERCEL_PROJECT_ID`, `TEST_VERCEL_ORG_ID` | Expected test project and its scope. |
-| `PRODUCTION_VERCEL_PROJECT_ID`, `PRODUCTION_VERCEL_ORG_ID` | Distinct expected production project/scope. |
+| Variable                                                   | Value/purpose                                                     |
+| ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| `DELIVERY_ENABLED`                                         | Leave absent/false until setup is verified; `true` enables gates. |
+| `TEST_SUPABASE_URL`                                        | Canonical HTTPS URL for the isolated test project.                |
+| `PRODUCTION_SUPABASE_URL`                                  | Distinct canonical production URL.                                |
+| `TEST_VERCEL_PROJECT_ID`, `TEST_VERCEL_ORG_ID`             | Expected test project and its scope.                              |
+| `PRODUCTION_VERCEL_PROJECT_ID`, `PRODUCTION_VERCEL_ORG_ID` | Distinct expected production project/scope.                       |
 
 GitHub environment variables:
 
-| Variable | `preview` | `production` |
-| --- | --- | --- |
-| `DELIVERY_TARGET` | `preview` | `production` |
-| `SUPABASE_URL` | Matches `TEST_SUPABASE_URL` | Matches `PRODUCTION_SUPABASE_URL` |
-| `SUPABASE_PUBLISHABLE_KEY` | Test public key | Production public key |
-| `VERCEL_PROJECT_ID`, `VERCEL_ORG_ID` | Match test identity variables | Match production identity variables |
-| `PRODUCTION_URL` | Unset | Canonical production HTTPS origin, no trailing slash/path. |
+| Variable                             | `preview`                     | `production`                                               |
+| ------------------------------------ | ----------------------------- | ---------------------------------------------------------- |
+| `DELIVERY_TARGET`                    | `preview`                     | `production`                                               |
+| `SUPABASE_URL`                       | Matches `TEST_SUPABASE_URL`   | Matches `PRODUCTION_SUPABASE_URL`                          |
+| `SUPABASE_PUBLISHABLE_KEY`           | Test public key               | Production public key                                      |
+| `VERCEL_PROJECT_ID`, `VERCEL_ORG_ID` | Match test identity variables | Match production identity variables                        |
+| `PRODUCTION_URL`                     | Unset                         | Canonical production HTTPS origin, no trailing slash/path. |
 
 Environment secrets: `VERCEL_TOKEN` scoped only to that environment's Vercel scope;
 optional `VERCEL_AUTOMATION_BYPASS_SECRET` for that project's deployment protection;
@@ -142,7 +151,7 @@ with an associated merged PR whose merge SHA is that revision. A passing PR run,
 direct main push or non-main run cannot choose the production job. Test delivery
 and smoke must succeed first. Production builds again with production public
 settings, uses `--prod --skip-domain`, smokes the immutable URL, rechecks freshness,
-then promotes and smokes the configured production origin. `NEXT_PUBLIC_*` values
+then promotes and smokes the configured production origin. `EXPO_PUBLIC_*` values
 are frozen in browser assets, so the test build is never promoted to production.
 The provider must confirm deployment project/target/SHA/readiness and production
 domain ownership before smoke requests receive a protection bypass header.
@@ -217,14 +226,14 @@ hosted migration/deployment verification remain pending owner setup.
 
 Local verification on October 26, 2026:
 
-| Check | Observed result |
-| --- | --- |
-| Fresh `npm ci` and `npm run check` in Node 24.22.1 Linux container | Passed lint, type checking, all 36 tests (including the original 12) and production build; `NODE_ENV=production` during check. No prototypes or real environment file in the image. |
-| Disposable Compose validation | Passed without reading/replacing the developer's `.env.local`. |
-| Final `linux/amd64` production image | Homepage, all linked CSS, robots and health smoke passed; no mounts, unprivileged user, no hosted backend. |
-| Workflow and shell validation | `actionlint` 1.7.12 passed the three workflows with only its unsupported `queue` diagnostic excluded; guard tests verify the documented `queue: max` value and admission before the lock. Shell syntax passed. Hosted lock execution remains pending. |
-| Vercel CLI 65.4.0 | Actual installed command definitions and generated preview/production help invocations passed without credentials; hosted dry-run could not proceed without credentials. No deployment attempted. |
-| GitHub Actions CI | [Run 2](https://github.com/UWorldJK/pool/actions/runs/40449288052) passed checks, Compose and production-container smoke on `e33500d`; latest-head results remain visible on the PR. |
+| Check                                                              | Observed result                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fresh `npm ci` and `npm run check` in Node 24.22.1 Linux container | Passed lint, type checking, all 36 tests (including the original 12) and production build; `NODE_ENV=production` during check. No prototypes or real environment file in the image.                                                                   |
+| Disposable Compose validation                                      | Passed without reading/replacing the developer's `.env.local`.                                                                                                                                                                                        |
+| Final `linux/amd64` production image                               | Homepage, all linked CSS, robots and health smoke passed; no mounts, unprivileged user, no hosted backend.                                                                                                                                            |
+| Workflow and shell validation                                      | `actionlint` 1.7.12 passed the three workflows with only its unsupported `queue` diagnostic excluded; guard tests verify the documented `queue: max` value and admission before the lock. Shell syntax passed. Hosted lock execution remains pending. |
+| Vercel CLI 65.4.0                                                  | Actual installed command definitions and generated preview/production help invocations passed without credentials; hosted dry-run could not proceed without credentials. No deployment attempted.                                                     |
+| GitHub Actions CI                                                  | [Run 2](https://github.com/UWorldJK/pool/actions/runs/40449288052) passed checks, Compose and production-container smoke on `e33500d`; latest-head results remain visible on the PR.                                                                  |
 
 Local automated evidence and hosted evidence are separate. The PR records the
 exact tested commit and completed CI results. Guard tests exercise failed/skipped

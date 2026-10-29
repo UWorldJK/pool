@@ -97,7 +97,7 @@ Validation lives in `scripts/ride-permissions.mjs`, ride action/time unit tests,
 and `tests/auth/rides.spec.mjs` alongside inherited Auth/membership browsers. Real
 public-key sessions exercise direct Data API/RPC authority/privacy, duplicate and
 concurrent writes, stale child/ride revisions, independent login persistence,
-removal and cancellation. Browser scenarios exercise real Server Action posts,
+removal and cancellation. Browser scenarios exercise authenticated command RPCs,
 including replaying under unrelated/coordinator sessions, real manual membership
 invitations, DST validation, enrollment, schedule, withdrawal and cancellation.
 No vehicles, driver selection, approvals, progress, maps, recurrence, notifications,

@@ -2,7 +2,17 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, lkluge/ci-vercel-delivery, lkluge/auth-session-flow, lkluge/family-circle-membership, lkluge/ride-planning, lkluge/driver-confirmation, lkluge/ride-handoffs]
+    branches:
+      [
+        main,
+        lkluge/ci-vercel-delivery,
+        lkluge/auth-session-flow,
+        lkluge/family-circle-membership,
+        lkluge/ride-planning,
+        lkluge/driver-confirmation,
+        lkluge/ride-handoffs,
+        lkluge/driver-replacements,
+      ]
   push:
     branches: [main]
 
@@ -14,14 +24,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: checks
-    runs-on: ubuntu-latest
+  web:
+    name: web
+    # Playwright 1.58.2 supports Ubuntu 24.04; ubuntu-latest now uses 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
-      NEXT_TELEMETRY_DISABLED: '1'
-      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.invalid
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_PUBLIC_SUPABASE_URL: https://ci-placeholder.invalid
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -51,3 +62,75 @@ jobs:
           version: v2.40.3
       - run: bash scripts/validate-compose.sh
       - run: bash scripts/container-smoke.sh
+
+  ios:
+    name: ios
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      EXPO_NO_DOTENV: "1"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_PUBLIC_SUPABASE_URL: https://ci-placeholder.invalid
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - run: npm run test:components
+      - run: npm run build:ios
+      - name: Install native UI test runner
+        run: brew install mobile-dev-inc/tap/maestro
+      - name: Record native toolchain
+        id: native-toolchain
+        run: echo "xcode=$(xcodebuild -version | tr -cs 'A-Za-z0-9' '-')" >> "$GITHUB_OUTPUT"
+      - name: Restore native build cache
+        id: native-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+            ${{ runner.temp }}/pool-ios-derived-data
+          key: native-${{ runner.os }}-${{ runner.arch }}-${{ steps.native-toolchain.outputs.xcode }}-${{ hashFiles('package-lock.json', 'app.json', 'app.config.*', 'metro.config.cjs', '.nvmrc') }}
+      - name: Build and launch ad-hoc signed simulator application
+        run: node scripts/ios-test.mjs --smoke
+        env:
+          POOL_IOS_DERIVED_DATA: ${{ runner.temp }}/pool-ios-derived-data
+      - name: Retain native UI diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-diagnostics
+          path: |
+            test-results/ios
+            ~/.maestro/tests
+            pool-ios-*.png
+          include-hidden-files: true
+          retention-days: 5
+          if-no-files-found: warn
+      - name: Save native build cache
+        if: ${{ always() && steps.native-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+            ${{ runner.temp }}/pool-ios-derived-data
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+
+  checks:
+    name: checks
+    if: ${{ always() }}
+    needs: [web, ios]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require both platforms
+        env:
+          WEB_RESULT: ${{ needs.web.result }}
+          IOS_RESULT: ${{ needs.ios.result }}
+        run: test "$WEB_RESULT" = success && test "$IOS_RESULT" = success

@@ -115,7 +115,7 @@ It never resets the developer's `pool` backend. Admin access is confined to
 synthetic fixtures and deliberate fault/lock injection. `npm run test:db` runs the
 database subset; `npm run db:types` regenerates the checked-in public types.
 
-R6 adds `scripts/handoff-permissions.mjs`, Server Action regressions and
+R6 adds `scripts/handoff-permissions.mjs`, command-service regressions and
 `tests/auth/handoffs.spec.mjs`: multi-child persistence and separate completion,
 duplicate/concurrent receipts and successful duplicate UUID reuse across children/rides,
 actor and recipient denials (including an ordinary
@@ -124,7 +124,7 @@ versions/request reuse, fabricated events/direct writes, scoped and revoked
 history, start revalidation, atomic rollback on event failure, removal/pickup races,
 active-trip mutation guards and terminal protection. The real browser journey
 uses separate driver/guardian accounts, mobile keyboard controls, navigation and
-reload persistence, and cross-account replay of actual receipt Server Actions.
+reload persistence, and cross-account replay of actual receipt RPCs.
 Inherited CI now admits the R5 stacked base and retains its complete checks.
 
 Hosted setup, isolated provider environments, SMTP/origins and hosted acceptance

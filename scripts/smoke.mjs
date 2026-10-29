@@ -1,11 +1,18 @@
 import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
-export async function smoke(base, { request = fetch, bypass = "", attempts = 30 } = {}) {
+export async function smoke(
+  base,
+  { request = fetch, bypass = "", attempts = 30 } = {},
+) {
   const origin = new URL(base).origin;
   async function get(path, contentType) {
     const url = new URL(path, origin);
-    assert.equal(url.origin, origin, "Smoke requests must stay on the deployment origin");
+    assert.equal(
+      url.origin,
+      origin,
+      "Smoke requests must stay on the deployment origin",
+    );
     const response = await request(url, {
       redirect: "manual",
       headers: bypass ? { "x-vercel-protection-bypass": bypass } : {},
@@ -26,16 +33,21 @@ export async function smoke(base, { request = fetch, bypass = "", attempts = 30 
       healthy = true;
       break;
     } catch {
-      if (attempt + 1 < attempts) await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (attempt + 1 < attempts)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
   assert.ok(healthy, "Application liveness check failed");
   const { body: html } = await get("/", /text\/html/);
-  assert.match(html, /<h1\b[^>]*>A smoother ride for every family\.<\/h1>/);
+  assert.match(html, /<div[^>]+id="root"/);
+  const scripts = [...html.matchAll(/<script\b[^>]*src="([^"]+)"/g)];
+  assert.ok(scripts.length, "Expo shell must load its application bundle");
+  for (const [, src] of scripts) await get(src, /javascript/);
+  await get("/app/rides/00000000-0000-4000-8000-000000000001", /text\/html/);
   const styles = [...html.matchAll(/<link\b[^>]*>/g)]
     .filter(([tag]) => /\brel="stylesheet"/.test(tag))
     .map(([tag]) => tag.match(/\bhref="([^"]+)"/)?.[1]);
-  assert.ok(styles.length && styles.every(Boolean), "Homepage must link CSS");
+  assert.ok(styles.every(Boolean), "Stylesheet links must have valid paths");
   for (const href of styles) {
     const { body: css } = await get(href.replaceAll("&amp;", "&"), /text\/css/);
     assert.ok(css.length > 100 && css.includes("{"), "CSS must contain rules");
@@ -43,9 +55,14 @@ export async function smoke(base, { request = fetch, bypass = "", attempts = 30 
   const { body: robots } = await get("/robots.txt", /text\/plain/);
   assert.match(robots, /User-agent:\s*\*/i);
   assert.match(robots, /^Disallow:\s*\/$/im);
-  console.log("Smoke: homepage, linked CSS, robots.txt and application liveness OK");
+  console.log(
+    "Smoke: homepage, linked CSS, robots.txt and application liveness OK",
+  );
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   await smoke(process.argv[2]);
 }
