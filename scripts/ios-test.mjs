@@ -127,7 +127,7 @@ if (
       ? resolve(process.env.POOL_IOS_DERIVED_DATA)
       : mkdtempSync(join(tmpdir(), "pool-ios-"));
     console.log(
-      "Building unsigned Release for the selected simulator architecture.",
+      "Building ad-hoc signed Release for the selected simulator architecture.",
     );
     run("xcodebuild", [
       "-quiet",
@@ -144,7 +144,9 @@ if (
       "-derivedDataPath",
       directory,
       "ONLY_ACTIVE_ARCH=YES",
-      "CODE_SIGNING_ALLOWED=NO",
+      "CODE_SIGNING_ALLOWED=YES",
+      "CODE_SIGN_IDENTITY=-",
+      "DEVELOPMENT_TEAM=",
     ]);
     const application = join(
       directory,
@@ -152,6 +154,10 @@ if (
     );
     if (!existsSync(application))
       throw new Error("Simulator application was not built.");
+    // Simulator Keychain requires the app's signed application identifier.
+    // Xcode's local ad-hoc identity needs no certificate or provisioning profile.
+    run("codesign", ["--verify", "--deep", "--strict", application]);
+    run("codesign", ["--display", "--entitlements", ":-", application]);
     console.log(
       "Installing the simulator application and running native UI smoke.",
     );

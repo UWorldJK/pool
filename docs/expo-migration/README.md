@@ -34,9 +34,9 @@ Open `comparison.html` through a local static server to compare all 14 named
 screens at desktop and phone sizes. The original [v3 checklist](../v3-parity-checklist.md)
 remains the visual contract; its older evidence is preserved.
 
-## Validation recorded on October 28, 2026
+## Validation recorded on October 28–29, 2026
 
-- Lint, TypeScript, **64 unit tests** and **6 shared native component tests** passed.
+- Lint, TypeScript, **64 unit tests** and **7 shared native component tests** passed.
 - Web and Hermes iOS JavaScript exports passed. The production Linux container
   smoke and Compose validation passed.
 - Expo's dependency compatibility check passes with React Native 0.88.0 and
@@ -115,8 +115,12 @@ brew install mobile-dev-inc/tap/maestro
 npm run test:ios
 ```
 
-The native runner generates the ignored iOS project, builds an unsigned Release
-Simulator app and runs the UI smoke. It builds only the selected simulator
+The native runner generates the ignored iOS project, builds a locally ad-hoc signed
+Release Simulator app and runs the UI smoke. Simulator Keychain access requires
+the signed application identifier; disabling signing causes SecureStore reads to
+fail. Xcode's local signing identity requires no Apple certificate, team or
+provisioning profile. Session-read failures also show an explicit retry action
+instead of leaving public routes loading indefinitely. It builds only the selected simulator
 architecture and boots the simulator after compilation, avoiding a second unused
 architecture and simulator CPU load during the build. Cold CI builds have a
 45-minute budget. The full harness then exercises a native
@@ -134,7 +138,7 @@ and executes the required smoke. Release delivery never consumes this cache.
 This machine initially has Command Line Tools selected and no `simctl`; no local
 simulator, VoiceOver or native UI acceptance is claimed without that prerequisite.
 The macOS CI job builds and launches the simulator smoke; it does not substitute
-for the local full-backend native journeys. No Apple signing, physical-device
+for the local full-backend native journeys. No device signing, physical-device
 release, universal links, Android acceptance or TestFlight distribution is included.
 
 ## Web startup measurements

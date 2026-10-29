@@ -97,7 +97,7 @@ jobs:
             ~/Library/Caches/CocoaPods
             ${{ runner.temp }}/pool-ios-derived-data
           key: native-${{ runner.os }}-${{ runner.arch }}-${{ steps.native-toolchain.outputs.xcode }}-${{ hashFiles('package-lock.json', 'app.json', 'app.config.*', 'metro.config.cjs', '.nvmrc') }}
-      - name: Build and launch unsigned simulator application
+      - name: Build and launch ad-hoc signed simulator application
         run: node scripts/ios-test.mjs --smoke
         env:
           POOL_IOS_DERIVED_DATA: ${{ runner.temp }}/pool-ios-derived-data
