@@ -1,4 +1,5 @@
 import { Fields } from "./fields";
+import { beginSessionEnd } from "./session-end";
 
 import { redirect } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -92,9 +93,10 @@ export async function resetPassword(
       error:
         "Unable to update the password. Choose a different password or request a new recovery link.",
     };
-  const { error: signOutError } = await client.auth.signOut({
-    scope: "global",
-  });
+  const finish = beginSessionEnd("password-updated");
+  const { error: signOutError } = await client.auth
+    .signOut({ scope: "global" })
+    .finally(finish);
   if (signOutError)
     return {
       error:
@@ -105,7 +107,10 @@ export async function resetPassword(
 
 export async function signOut(): Promise<AuthState> {
   const client = await createClient();
-  const { error } = await client.auth.signOut({ scope: "local" });
+  const finish = beginSessionEnd("signed-out");
+  const { error } = await client.auth
+    .signOut({ scope: "local" })
+    .finally(finish);
   if (error) return { error: "Unable to sign out. Please try again." };
   redirect("/sign-in?message=signed-out");
 }

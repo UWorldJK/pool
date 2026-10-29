@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import { render, screen, waitFor, act } from "@testing-library/react-native";
 import { SessionProvider, useSession } from "@/services/session";
 import { createClient } from "@/lib/supabase/client";
+import { beginSessionEnd } from "@/services/session-end";
 jest.mock("@/lib/supabase/client", () => ({ createClient: jest.fn() }));
 jest.mock("@react-native-community/netinfo", () => ({
   __esModule: true,
@@ -35,8 +36,12 @@ test("foreground SIGNED_IN for the same verified adult retains drafts; sign-out 
     return <Text>Draft still here</Text>;
   }
   function Protected() {
-    const { ready, user } = useSession();
-    return ready && user ? <Draft /> : <Text>Signed out or checking</Text>;
+    const { ready, user, ended } = useSession();
+    return ready && user ? (
+      <Draft />
+    ) : (
+      <Text>{ended ?? "Signed out or checking"}</Text>
+    );
   }
   await render(
     <SessionProvider>
@@ -57,10 +62,13 @@ test("foreground SIGNED_IN for the same verified adult retains drafts; sign-out 
   expect(mounts).toBe(1);
   user = null;
   await act(async () => {
+    const finish = beginSessionEnd("signed-out");
     callback("SIGNED_OUT", null);
+    finish();
     await new Promise((resolve) => setTimeout(resolve, 20));
   });
   await waitFor(() =>
     expect(screen.queryByText("Draft still here")).toBeNull(),
   );
+  expect(screen.getByText("signed-out")).toBeTruthy();
 });

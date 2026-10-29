@@ -424,7 +424,9 @@ try {
                       ? ["tests/auth/handoffs.spec.mjs"]
                       : process.argv.includes("--presentation-only")
                         ? ["tests/auth/presentation.spec.mjs"]
-                        : []),
+                        : process.argv.includes("--session-only")
+                          ? ["tests/auth/session.spec.mjs"]
+                          : []),
           ],
           env,
         );
