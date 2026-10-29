@@ -1,3 +1,4 @@
+import { Fields } from "../src/services/fields.ts";
 import assert from "node:assert/strict";
 import test, { after, beforeEach, mock } from "node:test";
 import { registerAuthTestLoader } from "./auth-test-loader.mjs";
@@ -9,19 +10,17 @@ const identity = {
   email: "one@example.test",
   email_confirmed_at: "yes",
 };
-mock.module(new URL("../src/lib/supabase/server.ts", import.meta.url).href, {
+mock.module(new URL("../src/lib/supabase/client.ts", import.meta.url).href, {
   exports: { createClient: async () => ({ auth }) },
 });
-mock.module("next/navigation", {
+mock.module(new URL("../src/lib/navigation.ts", import.meta.url).href, {
   exports: {
     redirect: (target) => {
       throw new Error(`redirect:${target}`);
     },
   },
 });
-const actions = await import("../src/app/(auth)/actions.ts");
-const { GET: callback } = await import("../src/app/auth/callback/route.ts");
-const { NextRequest } = await import("next/server");
+const actions = await import("../src/services/auth.ts");
 loader.deregister();
 after(() => mock.restoreAll());
 beforeEach(() => {
@@ -41,7 +40,7 @@ beforeEach(() => {
   }));
 });
 function form(fields) {
-  const data = new FormData();
+  const data = new Fields();
   for (const [key, value] of Object.entries(fields)) data.set(key, value);
   return data;
 }
@@ -165,26 +164,27 @@ test("confirmation accepts only valid signup/recovery hashes and rejects expired
   );
 });
 
-test("callback rejects missing code/provider error/exchange failure and never redirects externally", async () => {
-  for (const query of ["", "?error=denied&code=ignored", "?code=expired"]) {
+test("callback rejects missing/provider/error codes and external return destinations", async () => {
+  for (const input of [
+    {},
+    { code: "ignored", error: "denied" },
+    { code: "expired" },
+  ]) {
     auth.exchangeCodeForSession.mock.mockImplementation(async () => ({
       error: { message: "failed" },
     }));
-    const response = await callback(
-      new NextRequest(`https://pool.example/auth/callback${query}`),
+    await assert.rejects(
+      actions.exchangeAuthCode(input),
+      /redirect:\/auth\/error/,
     );
-    assert.equal(response.headers.get("location"), "/auth/error");
-    assert.match(response.headers.get("cache-control"), /private.*no-store/);
   }
   auth.exchangeCodeForSession.mock.mockImplementation(async () => ({
     error: null,
   }));
-  const response = await callback(
-    new NextRequest(
-      "https://pool.example/auth/callback?code=valid&next=//evil.example",
-    ),
+  await assert.rejects(
+    actions.exchangeAuthCode({ code: "valid", next: "//evil.example" }),
+    /redirect:\/app$/,
   );
-  assert.equal(response.headers.get("location"), "/app");
 });
 
 test("sign-out errors remain visible and regular sign-out ends only this session", async () => {

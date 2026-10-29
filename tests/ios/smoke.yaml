@@ -1,0 +1,15 @@
+appId: dev.pool.prototype
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink: pool:///sign-up
+- assertVisible: Create your Pool account
+- assertVisible: Email address
+- assertVisible: Password
+- assertVisible: I am at least 18 years old.
+- takeScreenshot: pool-ios-signup
+- stopApp
+- launchApp
+- openLink: pool:///sign-in
+- assertVisible: Sign in to Pool

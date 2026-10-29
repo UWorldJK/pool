@@ -11,3 +11,10 @@ next-env.d.ts
 .vercel/
 .DS_Store
 npm-debug.log*
+
+.expo/
+dist/
+dist-ios/
+/ios/
+/android/
+expo-env.d.ts

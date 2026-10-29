@@ -12,11 +12,27 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createServer } from "node:net";
 import assert from "node:assert/strict";
-import { permissionTests, baselineIdentity } from "./membership-permissions.mjs";
-import { ridePermissionTests, rideUpgradeIdentity } from "./ride-permissions.mjs";
-import { driverPermissionTests, driverUpgradeIdentity } from "./driver-permissions.mjs";
-import { handoffPermissionTests, handoffUpgradeIdentity } from "./handoff-permissions.mjs";
-import { replacementPermissionTests, replacementUpgradeIdentity, replacementCompletedUpgradeIdentity } from "./replacement-permissions.mjs";
+import {
+  permissionTests,
+  baselineIdentity,
+} from "./membership-permissions.mjs";
+import {
+  ridePermissionTests,
+  rideUpgradeIdentity,
+} from "./ride-permissions.mjs";
+import {
+  driverPermissionTests,
+  driverUpgradeIdentity,
+} from "./driver-permissions.mjs";
+import {
+  handoffPermissionTests,
+  handoffUpgradeIdentity,
+} from "./handoff-permissions.mjs";
+import {
+  replacementPermissionTests,
+  replacementUpgradeIdentity,
+  replacementCompletedUpgradeIdentity,
+} from "./replacement-permissions.mjs";
 import { migrationDatabaseTests } from "./migration-database-tests.mjs";
 
 // No external URL/key options: this command can only use the fresh CLI project
@@ -156,31 +172,74 @@ try {
   // then rebuild clean and require identical generated public types.
   const baseline = await baselineIdentity(status);
   mkdirSync(join(directory, "supabase/migrations"), { recursive: true });
-  copyFileSync("supabase/migrations/20261027000100_membership.sql", join(directory, "supabase/migrations/20261027000100_membership.sql"));
-  disposableSupabase(["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  copyFileSync(
+    "supabase/migrations/20261027000100_membership.sql",
+    join(directory, "supabase/migrations/20261027000100_membership.sql"),
+  );
+  disposableSupabase(["db", "push", "--local", ...args], {
+    stdio: ["ignore", "ignore", "inherit"],
+  });
   await baseline();
   const verifyR3 = await rideUpgradeIdentity(status);
-  copyFileSync("supabase/migrations/20261027000200_ride_planning.sql", join(directory,"supabase/migrations/20261027000200_ride_planning.sql"));
-  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  copyFileSync(
+    "supabase/migrations/20261027000200_ride_planning.sql",
+    join(directory, "supabase/migrations/20261027000200_ride_planning.sql"),
+  );
+  disposableSupabase(["db", "push", "--local", ...args], {
+    stdio: ["ignore", "ignore", "inherit"],
+  });
   await verifyR3();
   const verifyR4 = await driverUpgradeIdentity(status);
-  copyFileSync("supabase/migrations/20261027000300_driver_confirmation.sql", join(directory,"supabase/migrations/20261027000300_driver_confirmation.sql"));
-  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  copyFileSync(
+    "supabase/migrations/20261027000300_driver_confirmation.sql",
+    join(
+      directory,
+      "supabase/migrations/20261027000300_driver_confirmation.sql",
+    ),
+  );
+  disposableSupabase(["db", "push", "--local", ...args], {
+    stdio: ["ignore", "ignore", "inherit"],
+  });
   await verifyR4();
   const verifyR5 = await handoffUpgradeIdentity(status);
-  copyFileSync("supabase/migrations/20261027000400_ride_handoffs.sql", join(directory,"supabase/migrations/20261027000400_ride_handoffs.sql"));
-  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  copyFileSync(
+    "supabase/migrations/20261027000400_ride_handoffs.sql",
+    join(directory, "supabase/migrations/20261027000400_ride_handoffs.sql"),
+  );
+  disposableSupabase(["db", "push", "--local", ...args], {
+    stdio: ["ignore", "ignore", "inherit"],
+  });
   const verifyR6 = await verifyR5();
-  copyFileSync("supabase/migrations/20261027000500_handoff_request_bindings.sql", join(directory,"supabase/migrations/20261027000500_handoff_request_bindings.sql"));
-  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  copyFileSync(
+    "supabase/migrations/20261027000500_handoff_request_bindings.sql",
+    join(
+      directory,
+      "supabase/migrations/20261027000500_handoff_request_bindings.sql",
+    ),
+  );
+  disposableSupabase(["db", "push", "--local", ...args], {
+    stdio: ["ignore", "ignore", "inherit"],
+  });
   await verifyR6();
   const verifyR7 = await replacementUpgradeIdentity(status);
-  copyFileSync("supabase/migrations/20261027000600_driver_replacements.sql", join(directory,"supabase/migrations/20261027000600_driver_replacements.sql"));
-  disposableSupabase(["db","push","--local",...args],{stdio:["ignore","ignore","inherit"]});
+  copyFileSync(
+    "supabase/migrations/20261027000600_driver_replacements.sql",
+    join(
+      directory,
+      "supabase/migrations/20261027000600_driver_replacements.sql",
+    ),
+  );
+  disposableSupabase(["db", "push", "--local", ...args], {
+    stdio: ["ignore", "ignore", "inherit"],
+  });
   await verifyR7();
   const verifyCompletedR7 = await replacementCompletedUpgradeIdentity(status);
-  cpSync("supabase/migrations", join(directory, "supabase/migrations"), { recursive: true });
-  disposableSupabase(["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  cpSync("supabase/migrations", join(directory, "supabase/migrations"), {
+    recursive: true,
+  });
+  disposableSupabase(["db", "push", "--local", ...args], {
+    stdio: ["ignore", "ignore", "inherit"],
+  });
   await verifyCompletedR7();
   await verifyR7();
   await verifyR6();
@@ -189,52 +248,115 @@ try {
     assert.equal(database.hostname, "127.0.0.1");
     assert.equal(database.port, "55322");
     try {
-      return disposableSupabase(["gen", "types", "--lang", "typescript", "--db-url", status.DB_URL, "--schema", "public", "--workdir", directory], {
-        encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 2 * 1024 * 1024,
-      }).replace(/[\t ]+$/gm, "");
+      return disposableSupabase(
+        [
+          "gen",
+          "types",
+          "--lang",
+          "typescript",
+          "--db-url",
+          status.DB_URL,
+          "--schema",
+          "public",
+          "--workdir",
+          directory,
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+          maxBuffer: 2 * 1024 * 1024,
+        },
+      ).replace(/[\t ]+$/gm, "");
     } catch {
-      throw new Error("Local type generation failed (connection output suppressed)");
+      throw new Error(
+        "Local type generation failed (connection output suppressed)",
+      );
     }
   }
   const upgradedTypes = generatedTypes();
   const focusedBrowser = process.argv.includes("--membership-only");
-  if (!focusedBrowser) disposableSupabase(["db", "reset", "--local", "--no-seed", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  if (!focusedBrowser)
+    disposableSupabase(["db", "reset", "--local", "--no-seed", ...args], {
+      stdio: ["ignore", "ignore", "inherit"],
+    });
   const cleanTypes = focusedBrowser ? upgradedTypes : generatedTypes();
-  assert.equal(cleanTypes, upgradedTypes, "Clean and R2/R3/R4/R5/R6 upgrade schemas differ");
-  if (process.argv.includes("--write-types")) writeFileSync("src/lib/supabase/database.types.ts", cleanTypes);
-  else assert.equal(cleanTypes, readFileSync("src/lib/supabase/database.types.ts", "utf8"), "Generated database types drifted; run npm run db:types");
+  assert.equal(
+    cleanTypes,
+    upgradedTypes,
+    "Clean and R2/R3/R4/R5/R6 upgrade schemas differ",
+  );
+  if (process.argv.includes("--write-types"))
+    writeFileSync("src/lib/supabase/database.types.ts", cleanTypes);
+  else
+    assert.equal(
+      cleanTypes,
+      readFileSync("src/lib/supabase/database.types.ts", "utf8"),
+      "Generated database types drifted; run npm run db:types",
+    );
   let backendReady = false;
   for (let attempt = 0; attempt < 60; attempt++) {
     try {
       const response = await fetch(`${status.API_URL}/auth/v1/health`, {
-        headers: { apikey: status.PUBLISHABLE_KEY || status.ANON_KEY }, signal: AbortSignal.timeout(1000),
+        headers: { apikey: status.PUBLISHABLE_KEY || status.ANON_KEY },
+        signal: AbortSignal.timeout(1000),
       });
       backendReady = response.ok;
-    } catch { /* CLI reset restarts the gateway and Auth. */ }
+    } catch {
+      /* CLI reset restarts the gateway and Auth. */
+    }
     if (backendReady) break;
     await new Promise((ready) => setTimeout(ready, 500));
   }
-  assert.ok(backendReady, "Disposable backend did not recover after clean reset");
-  const sql = (statement) => execFileSync("docker", ["exec", "-i", `supabase_db_${project}`, "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-At"], {
-    input: statement, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"],
-  }).trim();
+  assert.ok(
+    backendReady,
+    "Disposable backend did not recover after clean reset",
+  );
+  const sql = (statement) =>
+    execFileSync(
+      "docker",
+      [
+        "exec",
+        "-i",
+        `supabase_db_${project}`,
+        "psql",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-At",
+      ],
+      {
+        input: statement,
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    ).trim();
   await permissionTests(status, sql);
   await ridePermissionTests(status, sql);
-  await driverPermissionTests(status,sql);
-  await handoffPermissionTests(status,sql);
-  await replacementPermissionTests(status,sql);
+  await driverPermissionTests(status, sql);
+  await handoffPermissionTests(status, sql);
+  await replacementPermissionTests(status, sql);
   await migrationDatabaseTests(status, sql);
-  console.log(`${focusedBrowser ? "R2 upgrade" : "Clean migrations and R2/R3/R4/R5/R6 upgrade"}, generated types and real-session permissions passed.`);
-  if (process.argv.includes("--database-only") || process.argv.includes("--write-types")) {
+  console.log(
+    `${focusedBrowser ? "R2 upgrade" : "Clean migrations and R2/R3/R4/R5/R6 upgrade"}, generated types and real-session permissions passed.`,
+  );
+  if (
+    process.argv.includes("--database-only") ||
+    process.argv.includes("--write-types")
+  ) {
     cleanup();
     process.exit(process.exitCode || 0);
   }
   const env = {
     ...process.env,
     NODE_ENV: "production",
-    NEXT_TELEMETRY_DISABLED: "1",
-    NEXT_PUBLIC_SUPABASE_URL: "http://localhost:55321",
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+    EXPO_NO_TELEMETRY: "1",
+    EXPO_NO_DOTENV: "1",
+    EXPO_PUBLIC_SUPABASE_URL: "http://localhost:55321",
+    EXPO_PUBLIC_WEB_ORIGIN: "http://localhost:3100",
+    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       status.PUBLISHABLE_KEY || status.ANON_KEY,
     SUPABASE_INTERNAL_URL: "",
     SUPABASE_SERVICE_ROLE_KEY: "",
@@ -244,16 +366,14 @@ try {
     PORT: "3100",
     HOSTNAME: "127.0.0.1",
   };
-  if (!env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+  if (!env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
     throw new Error("Disposable public key missing");
   await run(
     process.execPath,
-    ["node_modules/next/dist/bin/next", "build"],
+    ["node_modules/expo/bin/cli", "export", "--platform", "web"],
     env,
   );
-  cpSync(".next/static", ".next/standalone/.next/static", { recursive: true });
-  cpSync("public", ".next/standalone/public", { recursive: true });
-  appServer = spawn(process.execPath, [".next/standalone/server.js"], {
+  appServer = spawn(process.execPath, ["scripts/serve.mjs"], {
     env,
     stdio: "inherit",
   });
@@ -277,11 +397,59 @@ try {
     await new Promise((resolveReady) => setTimeout(resolveReady, 500));
   }
   if (!ready) throw new Error("Auth test app did not become ready");
-  await run(
-    process.execPath,
-    ["node_modules/@playwright/test/cli.js", "test", ...(process.argv.includes("--membership-only") ? ["tests/auth/membership.spec.mjs"] : process.argv.includes("--rides-only") ? ["tests/auth/rides.spec.mjs"] : process.argv.includes("--drivers-only") ? ["tests/auth/drivers.spec.mjs"] : process.argv.includes("--replacements-only") ? ["tests/auth/replacements.spec.mjs"] : process.argv.includes("--handoffs-only") ? ["tests/auth/handoffs.spec.mjs"] : [])],
-    env,
-  );
+  if (process.argv.includes("--ios")) {
+    await run(
+      process.execPath,
+      ["scripts/ios-test.mjs", "--from-harness"],
+      env,
+    );
+  } else {
+    const watch = process.argv.includes("--watch-browser");
+    do {
+      try {
+        await run(
+          process.execPath,
+          [
+            "node_modules/@playwright/test/cli.js",
+            "test",
+            ...(process.argv.includes("--membership-only")
+              ? ["tests/auth/membership.spec.mjs"]
+              : process.argv.includes("--rides-only")
+                ? ["tests/auth/rides.spec.mjs"]
+                : process.argv.includes("--drivers-only")
+                  ? ["tests/auth/drivers.spec.mjs"]
+                  : process.argv.includes("--replacements-only")
+                    ? ["tests/auth/replacements.spec.mjs"]
+                    : process.argv.includes("--handoffs-only")
+                      ? ["tests/auth/handoffs.spec.mjs"]
+                      : process.argv.includes("--presentation-only")
+                        ? ["tests/auth/presentation.spec.mjs"]
+                        : []),
+          ],
+          env,
+        );
+      } catch (error) {
+        if (!watch) throw error;
+        console.error(error.message);
+      }
+      if (!watch) break;
+      const { createInterface } = await import("node:readline/promises");
+      const input = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      const answer = await input.question(
+        "Disposable backend retained. Enter r to rebuild/retest or q to clean up: ",
+      );
+      input.close();
+      if (answer.trim() !== "r") break;
+      await run(
+        process.execPath,
+        ["node_modules/expo/bin/cli", "export", "--platform", "web"],
+        env,
+      );
+    } while (watch);
+  }
 } catch (error) {
   console.error(error.code === "ERR_ASSERTION" ? error.stack : error.message);
   process.exitCode = 1;
