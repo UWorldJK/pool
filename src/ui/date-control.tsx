@@ -2,6 +2,7 @@ import { useState } from "react";
 import { TextInput, Pressable, Text, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { styles } from "./styles";
+import { keyboardInputProps } from "./keyboard-input";
 export type DateProps = {
   testID?: string;
   label: string;
@@ -28,6 +29,7 @@ export function DateControl({
   return (
     <View style={{ gap: 8 }}>
       <TextInput
+        {...keyboardInputProps}
         testID={testID}
         accessibilityLabel={label}
         placeholder={type === "date" ? "YYYY-MM-DD" : "YYYY-MM-DDTHH:mm"}

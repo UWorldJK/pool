@@ -305,6 +305,7 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
           >
             <ScrollView
               ref={content}
+              keyboardDismissMode={Platform.OS === "web" ? "none" : "on-drag"}
               keyboardShouldPersistTaps="handled"
               refreshControl={
                 Platform.OS === "web" ? undefined : (
@@ -409,6 +410,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
+        keyboardDismissMode={Platform.OS === "web" ? "none" : "on-drag"}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           flexGrow: 1,

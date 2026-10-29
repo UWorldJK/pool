@@ -24,6 +24,7 @@ import { colors, styles, classStyle, textRules } from "./styles";
 import type { CommandInput } from "@/services/fields";
 import { SelectControl } from "./select-control";
 import { DateControl } from "./date-control";
+import { keyboardInputProps, submitOnReturn } from "./keyboard-input";
 import { followAnchor } from "./platform";
 // Only presentation props cross this boundary; all rendered controls are native primitives.
 export type ElementProps = {
@@ -528,6 +529,7 @@ export function Field({
     );
   return (
     <TextInput
+      {...keyboardInputProps}
       testID={name ? `field-${name}` : undefined}
       nativeID={p.id}
       accessibilityLabel={label}
@@ -551,7 +553,7 @@ export function Field({
       maxLength={p.maxLength}
       placeholder={p.placeholder}
       placeholderTextColor={colors.muted}
-      onSubmitEditing={() => form?.submit()}
+      onSubmitEditing={submitOnReturn ? () => form?.submit() : undefined}
       style={[styles.field, disabled ? styles.disabled : undefined]}
     />
   );
