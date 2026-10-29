@@ -15,6 +15,9 @@ on:
         required: true
       VERCEL_AUTOMATION_BYPASS_SECRET:
         required: false
+      # Supplied by each job's protected environment, never repository-wide.
+      MIGRATION_DATABASE_URL:
+        required: false
 
 permissions:
   contents: read
@@ -47,7 +50,9 @@ jobs:
         run: npm install --prefix "$RUNNER_TEMP/vercel-cli" --ignore-scripts --no-audit --no-fund vercel@65.4.0
       - name: Verify pinned CLI without deployment credentials
         run: node scripts/verify-vercel-cli.mjs "$RUNNER_TEMP/vercel-cli/node_modules/vercel/dist/index.js"
-      - name: Verify and deliver to test
+      - name: Install trusted migration tool without credentials
+        run: npm install --prefix "$RUNNER_TEMP/migration-tool" --ignore-scripts --no-audit --no-fund pg@8.16.3
+      - name: Migrate reviewed test schema, then deliver
         run: node scripts/deliver.mjs preview
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,6 +69,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
 
   production:
@@ -85,7 +91,9 @@ jobs:
         run: npm install --prefix "$RUNNER_TEMP/vercel-cli" --ignore-scripts --no-audit --no-fund vercel@65.4.0
       - name: Verify pinned CLI without deployment credentials
         run: node scripts/verify-vercel-cli.mjs "$RUNNER_TEMP/vercel-cli/node_modules/vercel/dist/index.js"
-      - name: Verify, stage, smoke and promote production
+      - name: Install trusted migration tool without credentials
+        run: npm install --prefix "$RUNNER_TEMP/migration-tool" --ignore-scripts --no-audit --no-fund pg@8.16.3
+      - name: Migrate reviewed production schema, then stage, smoke and promote
         run: node scripts/deliver.mjs production
         env:
           GH_TOKEN: ${{ github.token }}
@@ -103,4 +111,5 @@ jobs:
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}

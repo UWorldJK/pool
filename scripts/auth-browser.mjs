@@ -11,6 +11,9 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createServer } from "node:net";
+import assert from "node:assert/strict";
+import { permissionTests, baselineIdentity } from "./membership-permissions.mjs";
+import { migrationDatabaseTests } from "./migration-database-tests.mjs";
 
 // No external URL/key options: this command can only use the fresh CLI project
 // it owns, on ports distinct from the developer's existing pool backend.
@@ -140,6 +143,53 @@ try {
   );
   if (new URL(status.API_URL).origin !== "http://127.0.0.1:55321")
     throw new Error("Unexpected disposable API URL");
+  // Start at the R2 baseline, preserve an existing Auth identity through upgrade,
+  // then rebuild clean and require identical generated public types.
+  const baseline = await baselineIdentity(status);
+  cpSync("supabase/migrations", join(directory, "supabase/migrations"), { recursive: true });
+  execFileSync(cli, ["db", "push", "--local", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  await baseline();
+  function generatedTypes() {
+    const database = new URL(status.DB_URL);
+    assert.equal(database.hostname, "127.0.0.1");
+    assert.equal(database.port, "55322");
+    try {
+      return execFileSync(cli, ["gen", "types", "--lang", "typescript", "--db-url", status.DB_URL, "--schema", "public", "--workdir", directory], {
+        encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], maxBuffer: 2 * 1024 * 1024,
+      }).replace(/[\t ]+$/gm, "");
+    } catch {
+      throw new Error("Local type generation failed (connection output suppressed)");
+    }
+  }
+  const upgradedTypes = generatedTypes();
+  const focusedBrowser = process.argv.includes("--membership-only");
+  if (!focusedBrowser) execFileSync(cli, ["db", "reset", "--local", "--no-seed", ...args], { stdio: ["ignore", "ignore", "inherit"] });
+  const cleanTypes = focusedBrowser ? upgradedTypes : generatedTypes();
+  assert.equal(cleanTypes, upgradedTypes, "Clean and R2 upgrade schemas differ");
+  if (process.argv.includes("--write-types")) writeFileSync("src/lib/supabase/database.types.ts", cleanTypes);
+  else assert.equal(cleanTypes, readFileSync("src/lib/supabase/database.types.ts", "utf8"), "Generated database types drifted; run npm run db:types");
+  let backendReady = false;
+  for (let attempt = 0; attempt < 60; attempt++) {
+    try {
+      const response = await fetch(`${status.API_URL}/auth/v1/health`, {
+        headers: { apikey: status.PUBLISHABLE_KEY || status.ANON_KEY }, signal: AbortSignal.timeout(1000),
+      });
+      backendReady = response.ok;
+    } catch { /* CLI reset restarts the gateway and Auth. */ }
+    if (backendReady) break;
+    await new Promise((ready) => setTimeout(ready, 500));
+  }
+  assert.ok(backendReady, "Disposable backend did not recover after clean reset");
+  const sql = (statement) => execFileSync("docker", ["exec", "-i", `supabase_db_${project}`, "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-At"], {
+    input: statement, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"],
+  }).trim();
+  await permissionTests(status, sql);
+  await migrationDatabaseTests(status, sql);
+  console.log(`${focusedBrowser ? "R2 upgrade" : "Clean migrations and R2 upgrade"}, generated types and real-session permissions passed.`);
+  if (process.argv.includes("--database-only") || process.argv.includes("--write-types")) {
+    cleanup();
+    process.exit(process.exitCode || 0);
+  }
   const env = {
     ...process.env,
     NODE_ENV: "production",
@@ -190,7 +240,7 @@ try {
   if (!ready) throw new Error("Auth test app did not become ready");
   await run(
     process.execPath,
-    ["node_modules/@playwright/test/cli.js", "test"],
+    ["node_modules/@playwright/test/cli.js", "test", ...(process.argv.includes("--membership-only") ? ["tests/auth/membership.spec.mjs"] : [])],
     env,
   );
 } catch (error) {
