@@ -123,6 +123,29 @@ test("R8 shared layouts retain desktop composition, mobile navigation, keyboard 
     await expect(
       page.getByRole("navigation", { name: "Phone navigation" }),
     ).toHaveCount(0);
+    const sidebar = page.getByRole("navigation", {
+      name: "Application",
+      exact: true,
+    });
+    const newTab = page.context().waitForEvent("page");
+    await sidebar
+      .getByRole("link", { name: "Schedule", exact: true })
+      .click({ modifiers: ["ControlOrMeta"] });
+    const scheduleTab = await newTab;
+    await expect(scheduleTab).toHaveURL(/\/app\/schedule$/);
+    await expect(scheduleTab.getByRole("heading", { level: 1 })).toHaveText(
+      "Schedule",
+    );
+    await scheduleTab.close();
+    await expect(page).toHaveURL(/\/app$/);
+    await sidebar.getByRole("link", { name: "Schedule", exact: true }).click();
+    await expect(page).toHaveURL(/\/app\/schedule$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/app$/);
+    await page.goForward();
+    await expect(page).toHaveURL(/\/app\/schedule$/);
+    await sidebar.getByRole("link", { name: "My circle", exact: true }).click();
+    await expect(page).toHaveURL(/\/app$/);
     await openAction(page, "Create a family");
     await page.getByLabel("Family name", { exact: true }).fill(" ");
     await page.getByLabel("Your display name").fill("Presentation guardian");

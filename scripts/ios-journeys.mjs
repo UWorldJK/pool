@@ -105,9 +105,6 @@ export async function nativeJourneys({ device, run, directory }) {
     tap("Create family"),
     tap("Open saved membership"),
     { assertVisible: "Native family" },
-    "stopApp",
-    "launchApp",
-    { assertVisible: "Native family" },
   ]);
   const observer = createClient(
     process.env.EXPO_PUBLIC_SUPABASE_URL,
@@ -124,6 +121,10 @@ export async function nativeJourneys({ device, run, directory }) {
       .single()
   ).data.id;
   flow([
+    "stopApp",
+    "launchApp",
+    open(`/app/families/${ownFamily}`),
+    { assertVisible: "Native family" },
     tap("Create a circle"),
     ...input("Circle name", "Native circle"),
     tap("Create circle"),

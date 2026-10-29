@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { createClient } from "@/lib/supabase/client";
 import { verifiedUser } from "@/lib/auth/identity";
@@ -11,6 +11,9 @@ export default function Callback() {
     error: string;
   }>();
   const [message, setMessage] = useState("Checking your email link…");
+  const pending = useRef<{ code: string; result: Promise<boolean> } | null>(
+    null,
+  );
   useEffect(() => {
     let active = true;
     async function exchange() {
@@ -18,16 +21,26 @@ export default function Callback() {
         router.replace("/auth/error");
         return;
       }
-      const client = createClient();
-      const result = await client.auth.exchangeCodeForSession(code);
+      // Development effect replay must not consume a single-use PKCE code twice.
+      if (pending.current?.code !== code) {
+        pending.current = {
+          code,
+          result: (async () => {
+            const client = createClient();
+            const result = await client.auth.exchangeCodeForSession(code);
+            return !result.error && Boolean(await verifiedUser(client));
+          })(),
+        };
+      }
+      const valid = await pending.current.result;
       if (!active) return;
-      if (result.error || !(await verifiedUser(client)))
-        router.replace("/auth/error");
+      if (!valid) router.replace("/auth/error");
       else router.replace(appReturnPath(next) as never);
     }
-    void exchange().catch(() =>
-      setMessage("This link could not be used. Request another link."),
-    );
+    void exchange().catch(() => {
+      if (active)
+        setMessage("This link could not be used. Request another link.");
+    });
     return () => {
       active = false;
     };
