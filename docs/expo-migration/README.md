@@ -75,10 +75,19 @@ viewports. Migration checks recorded on October 28–29, 2026 include:
   the ad-hoc signed Release Simulator build/public-route smoke, including signup,
   sign-in navigation, deep links and restart. Current CI results remain on PR #10.
 
-**Full native acceptance remains pending:** real-backend native/browser journeys,
-VoiceOver, large text and the remaining native workflow inventory. The journeys
-are scripted; bundle/component and public-route smoke checks do not complete
-this acceptance. No Android, physical-device, universal-link or TestFlight
+Local Xcode 27.1 / iPhone 17e (iOS 27.0) checks passed the Release build, public
+smoke, real signup/explicit confirmation, family/circle/child/vehicle setup,
+session restart and an iOS-created invitation accepted by an independent web user.
+The working tree passed 65 unit and 20 component tests. A focused XCTest passed
+actual VoiceOver signup traversal; [captured speech](native-voiceover.txt) and
+[test source](../../tests/ios/accessibility/PoolAccessibilityTests.m) are retained.
+These local results include the native correctness fixes already present in the
+working tree before this run.
+
+**Full native acceptance remains pending:** the ride-to-handoff journey currently
+stops on an automation scrolling issue that positions a field behind a fixed bar.
+Large text, broader VoiceOver coverage and remaining native route/state inventory
+are unverified. No Android, physical-device, universal-link or TestFlight
 acceptance is claimed.
 
 ## Verification
@@ -95,6 +104,11 @@ npm run test:ios
 The browser/database harness owns disposable backends on ports 55320–55329 and
 never resets the developer's backend or targets hosted Supabase. Optional
 `--watch-browser` retains only that disposable project; enter `q` to clean it up.
+For native iteration, use `node scripts/auth-browser.mjs --ios --watch-ios`.
+Retries still run xcodebuild and bundle current JS, reusing the generated project;
+restart after dependency/native-configuration changes. Disable password AutoFill
+in the dedicated simulator during deterministic credential tests, then restore it.
+Native captured-mail links have a five-minute TTL; browser expiry tests keep ten seconds.
 Replay tests capture actual mutation RPCs and replay them with another adult's
 token; UI guards never substitute for database authorization.
 
@@ -106,6 +120,10 @@ Keychain/SecureStore access without an Apple certificate, team or provisioning
 profile. CI retains native diagnostics and caches toolchain-specific build inputs;
 each run still bundles current source and runs smoke checks.
 
+The separate VoiceOver target requires Xcode 27 and an installed Pool app:
+`xcodebuild test -project tests/ios/accessibility/PoolAccessibility.xcodeproj -scheme PoolAccessibility -destination 'platform=iOS Simulator,name=iPhone 17e' CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=`.
+It verifies signup traversal; the broader accessibility inventory remains pending.
+
 ## Web startup performance
 
 [performance.json](performance.json) retains raw Chromium samples from matching
@@ -115,12 +133,12 @@ production builds. With the preserved baseline and Expo export on separate ports
 node scripts/measure-web.mjs http://localhost:3002 http://localhost:3003
 ```
 
-| Median measurement | Next.js baseline | Expo web |
-| --- | ---: | ---: |
-| Visible screen ready | 54 ms | 424 ms |
-| First contentful paint | 40 ms | 432 ms |
-| Encoded script bytes | 135 KiB | 442 KiB |
-| Signup → sign-in navigation | 90 ms | 367 ms |
+| Median measurement          | Next.js baseline | Expo web |
+| --------------------------- | ---------------: | -------: |
+| Visible screen ready        |            54 ms |   424 ms |
+| First contentful paint      |            40 ms |   432 ms |
+| Encoded script bytes        |          135 KiB |  442 KiB |
+| Signup → sign-in navigation |            90 ms |   367 ms |
 
 This is a material startup/navigation regression from server-rendered Next.js.
 The client-rendered shell/shared runtime adds cost despite compression, route
